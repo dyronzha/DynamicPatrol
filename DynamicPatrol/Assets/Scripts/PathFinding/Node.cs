@@ -20,6 +20,11 @@ namespace PathFinder
         public Node parent;
         int heapIndex;
 
+        public string colliderName;
+
+        Dictionary<int, int> AreaInfo;  //1234 上下左右
+
+
         public Node(bool _walkable, Vector3 _worldPos, int _gridX, int _gridY, int _penalty)
         {
             walkable = _walkable;
@@ -27,6 +32,15 @@ namespace PathFinder
             gridX = _gridX;
             gridY = _gridY;
             movementPenalty = _penalty;
+        }
+        public Node(bool _walkable, Vector3 _worldPos, int _gridX, int _gridY, int _penalty, string _area)
+        {
+            walkable = _walkable;
+            worldPosition = _worldPos;
+            gridX = _gridX;
+            gridY = _gridY;
+            movementPenalty = _penalty;
+            colliderName = _area;
         }
 
         public int fCost
@@ -68,6 +82,11 @@ namespace PathFinder
             }
         }
 
+        public void AddArea(int id, int dir) {
+            if (!AreaInfo.ContainsKey(id)) {
+                AreaInfo.Add(id,dir);
+            }
+        }
     }
 
 }

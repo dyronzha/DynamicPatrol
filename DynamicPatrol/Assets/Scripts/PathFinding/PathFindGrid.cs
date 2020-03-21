@@ -13,6 +13,10 @@ namespace PathFinder
         public float nodeRadius;
         public TerrainType[] walkableRegions;
         public int obstacleProximityPenalty = 10;
+        public int blurSize = 3;
+        public int chooseOffset;
+        int chooseValue;
+
         Dictionary<int, int> walkableRegionsDictionary = new Dictionary<int, int>();
         LayerMask walkableMask;
 
@@ -27,6 +31,8 @@ namespace PathFinder
         float offsetX, offsetY;
 
         List<Vector2> disappearBarrier = new List<Vector2>();
+
+        PatrolManager patrolManager;
 
         void Awake()
         {
@@ -43,6 +49,10 @@ namespace PathFinder
             CreateGrid();
             offsetX = transform.position.x;
             offsetY = transform.position.y;
+
+            chooseOffset = Mathf.FloorToInt(obstacleProximityPenalty / (blurSize*blurSize));
+
+            patrolManager = transform.GetComponent<PatrolManager>();
         }
 
         public int MaxSize
@@ -58,6 +68,7 @@ namespace PathFinder
             grid = new Node[gridSizeX, gridSizeY];
             Vector3 worldBottomLeft = transform.position - Vector3.right * gridWorldSize.x / 2 - Vector3.forward * gridWorldSize.y / 2;
 
+            string areaNmae = string.Empty;
             for (int x = 0; x < gridSizeX; x++)
             {
                 for (int y = 0; y < gridSizeY; y++)
@@ -69,6 +80,7 @@ namespace PathFinder
                     if (hits != null && hits.Length > 0)
                     {
                         walkable = false;
+                        areaNmae = hits[0].name;
                         if (hits.Length == 0 && hits[0].tag == "disappearBarrier")
                         {
                             disappearBarrier.Add(new Vector2(x, y));
@@ -88,18 +100,19 @@ namespace PathFinder
                     if (!walkable)
                     {
                         movementPenalty += obstacleProximityPenalty;
+                        
                     }
+                    grid[x, y] = new Node(walkable, worldPoint, x, y, movementPenalty, areaNmae);
 
 
-                    grid[x, y] = new Node(walkable, worldPoint, x, y, movementPenalty);
                 }
             }
 
-            BlurPenaltyMap(3);
+            BlurPenaltyMap();
 
         }
 
-        void BlurPenaltyMap(int blurSize)
+        void BlurPenaltyMap()
         {
             int kernelSize = blurSize * 2 + 1;
             int kernelExtents = (kernelSize - 1) / 2;
@@ -107,40 +120,165 @@ namespace PathFinder
             int[,] penaltiesHorizontalPass = new int[gridSizeX, gridSizeY];
             int[,] penaltiesVerticalPass = new int[gridSizeX, gridSizeY];
 
+
             for (int y = 0; y < gridSizeY; y++)
             {
+                int areaNum = 0;
+                string[] lastAreaNmae = new string[2] { "E" , "E" } ;   //左,右
+                int[] lastAreaX = new int[2] { -1, -1 }; //左右
+
+                //最左邊處理
                 for (int x = -kernelExtents; x <= kernelExtents; x++)
                 {
+                    
                     int sampleX = Mathf.Clamp(x, 0, kernelExtents);
-                    penaltiesHorizontalPass[0, y] += grid[sampleX, y].movementPenalty;
+                    if (x <= 0 && grid[0, y].walkable)  //最左邊如果可以走，加上一點權重，不要太靠左邊
+                    {
+                        penaltiesHorizontalPass[0, y] += obstacleProximityPenalty;
+                    }
+                    else {
+
+                        penaltiesHorizontalPass[0, y] += grid[sampleX, y].movementPenalty;
+
+                        //最左邊的只要確定右邊第一次碰撞區
+                        if (areaNum == 0 && !grid[sampleX, y].walkable) {
+                            lastAreaNmae[1] = grid[sampleX, y].colliderName;
+                            areaNum++;
+                            grid[0, y].AddArea(patrolManager.AddPatrolArea(lastAreaNmae[1]), 3);
+                        } 
+                    }   
                 }
 
                 for (int x = 1; x < gridSizeX; x++)
                 {
+                    if (!grid[x, y].walkable) continue;
+
                     int removeIndex = Mathf.Clamp(x - kernelExtents - 1, 0, gridSizeX);
                     int addIndex = Mathf.Clamp(x + kernelExtents, 0, gridSizeX - 1);
 
-                    penaltiesHorizontalPass[x, y] = penaltiesHorizontalPass[x - 1, y] - grid[removeIndex, y].movementPenalty + grid[addIndex, y].movementPenalty;
+                    if (x + kernelExtents >= gridSizeX && grid[addIndex, y].walkable) //如果會算到最右邊且可以走的格子，加上一點權重。不要太靠邊
+                    {
+                        penaltiesHorizontalPass[x, y] = penaltiesHorizontalPass[x - 1, y] - grid[removeIndex, y].movementPenalty + obstacleProximityPenalty;
+                    }
+                    else {
+                        // 從一障礙物邊界出來將原本在右邊的變左邊
+                        if (lastAreaX[1] < x)
+                        {
+                            if (lastAreaNmae[1].CompareTo(grid[x - 1, y].colliderName) != 0) {
+                                //如果有兩個碰撞形成原本右邊的區域，將之後最左邊的名字填入
+                                lastAreaNmae[1] = grid[x - 1, y].colliderName;
+                                lastAreaX[1] = x - 1;
+                            }
+                            lastAreaNmae[0] = lastAreaNmae[1];
+                            lastAreaX[0] = lastAreaX[1];
+                            areaNum--;
+                            grid[x, y].Area.Add(lastAreaNmae[0]);
+                            grid[x, y].Direction.Add(4);
+                            grid[x, y].AddArea(patrolManager.AddPatrolArea(lastAreaNmae[1]), 3);
+                        }
+                        else { //只要不是從一區域剛出來，要看有沒有離開左邊區域
+                            if (!grid[removeIndex, y].walkable && grid[removeIndex + 1, y].walkable && lastAreaX[0] < removeIndex)
+                            {
+                                areaNum--;
+                                lastAreaNmae[0] = "E";
+                            }
+                        }
+                       
+                        //右邊新的區域
+                        if (!grid[addIndex, y].walkable && lastAreaNmae[1].CompareTo("E")==0)
+                        {
+                            lastAreaNmae[1] = grid[addIndex, y].colliderName;
+                            areaNum++;
+                            grid[x, y].Area.Add(lastAreaNmae[1]);
+                            grid[x, y].Direction.Add(3);
+                        }
+                        penaltiesHorizontalPass[x, y] = penaltiesHorizontalPass[x - 1, y] - grid[removeIndex, y].movementPenalty + grid[addIndex, y].movementPenalty;
+                    }
+                    
                 }
             }
 
             for (int x = 0; x < gridSizeX; x++)
             {
+                int areaNum = 0;
+                string[] lastAreaNmae = new string[2] { "E", "E" };   //上,下
+                int[] lastAreaY = new int[2] { -1, -1 }; //上,下
+
+                //最上面處理
                 for (int y = -kernelExtents; y <= kernelExtents; y++)
                 {
                     int sampleY = Mathf.Clamp(y, 0, kernelExtents);
-                    penaltiesVerticalPass[x, 0] += penaltiesHorizontalPass[x, sampleY];
+                    if (y <= 0 && grid[x,0].walkable)  //最上面如果可以走，加上一點權重，不要太靠上面
+                    {
+                        penaltiesVerticalPass[x, 0] += obstacleProximityPenalty;
+                    }
+                    else
+                    {
+                        penaltiesVerticalPass[x, 0] += penaltiesHorizontalPass[x, sampleY];
+
+                        //最上面的只要確定下面第一次碰撞區
+                        if (areaNum == 0 && !grid[x,sampleY].walkable)
+                        {
+                            lastAreaNmae[1] = grid[x, sampleY].colliderName;
+                            areaNum++;
+                            grid[x,0].Area.Add(lastAreaNmae[1]);
+                            grid[x,0].Direction.Add(1);
+                        }
+                    }
                 }
 
+                //第一列加上先前水平的權重值定除以格數
                 int blurredPenalty = Mathf.RoundToInt((float)penaltiesVerticalPass[x, 0] / (kernelSize * kernelSize));
                 grid[x, 0].movementPenalty = blurredPenalty;
 
+
                 for (int y = 1; y < gridSizeY; y++)
                 {
+                    if (!grid[x, y].walkable) continue;
                     int removeIndex = Mathf.Clamp(y - kernelExtents - 1, 0, gridSizeY);
                     int addIndex = Mathf.Clamp(y + kernelExtents, 0, gridSizeY - 1);
 
-                    penaltiesVerticalPass[x, y] = penaltiesVerticalPass[x, y - 1] - penaltiesHorizontalPass[x, removeIndex] + penaltiesHorizontalPass[x, addIndex];
+                    if (y + kernelExtents >= gridSizeY && grid[x, addIndex].walkable) //如果會算到最下面且可以走的格子，加上一點權重。不要太靠邊
+                    {
+                        penaltiesVerticalPass[x, y] = penaltiesVerticalPass[x, y-1] - penaltiesHorizontalPass[x, removeIndex] + obstacleProximityPenalty;
+                    }
+                    else
+                    {
+                        // 從一障礙物邊界出來將原本在右邊的變左邊
+                        if (lastAreaY[1] < y)
+                        {
+                            if (lastAreaNmae[1].CompareTo(grid[x, y-1].colliderName) != 0)
+                            {
+                                //如果有兩個碰撞形成原本下面的區域，將之後最上面的名字填入
+                                lastAreaNmae[1] = grid[x, y-1].colliderName;
+                                lastAreaY[1] = y - 1;
+                            }
+                            lastAreaNmae[0] = lastAreaNmae[1];
+                            lastAreaY[0] = lastAreaY[1];
+                            areaNum--;
+                            grid[x, y].Area.Add(lastAreaNmae[0]);
+                            grid[x, y].Direction.Add(2);
+                        }
+                        else
+                        { //只要不是從一區域剛出來，要看有沒有離開上面區域
+                            if (!grid[x,removeIndex].walkable && grid[x, removeIndex + 1].walkable && lastAreaY[0] < removeIndex)
+                            {
+                                areaNum--;
+                                lastAreaNmae[0] = "E";
+                            }
+                        }
+
+                        //下面新的區域
+                        if (!grid[x, addIndex].walkable && lastAreaNmae[1].CompareTo("E") == 0)
+                        {
+                            lastAreaNmae[1] = grid[x, addIndex].colliderName;
+                            areaNum++;
+                            grid[x, y].Area.Add(lastAreaNmae[1]);
+                            grid[x, y].Direction.Add(1);
+                        }
+                        penaltiesVerticalPass[x, y] = penaltiesVerticalPass[x, y - 1] - penaltiesHorizontalPass[x, removeIndex] + penaltiesHorizontalPass[x, addIndex];
+                    }
+                    
                     blurredPenalty = Mathf.RoundToInt((float)penaltiesVerticalPass[x, y] / (kernelSize * kernelSize));
                     grid[x, y].movementPenalty = blurredPenalty;
 
