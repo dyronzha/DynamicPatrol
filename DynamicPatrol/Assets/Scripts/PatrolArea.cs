@@ -3,8 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using PathFinder;
 
-public class PatrolArea : MonoBehaviour
+public class PatrolArea
 {
+    public PatrolArea(string _name) {
+        name = _name;
+    }
+
     string name;
     public string Name {
         get { return name; }

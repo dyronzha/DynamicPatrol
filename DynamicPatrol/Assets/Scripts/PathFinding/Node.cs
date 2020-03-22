@@ -22,8 +22,11 @@ namespace PathFinder
 
         public string colliderName;
 
-        Dictionary<int, int> AreaInfo;  //1234 上下左右
-
+        Dictionary<string, int> AreaInfo = new Dictionary<string, int>();  //1234 上下左右
+        public int AreaNum{
+            get { return AreaInfo.Count; }
+        }
+        public int dirr = 0;
 
         public Node(bool _walkable, Vector3 _worldPos, int _gridX, int _gridY, int _penalty)
         {
@@ -82,9 +85,10 @@ namespace PathFinder
             }
         }
 
-        public void AddArea(int id, int dir) {
+        public void AddArea(string id, int dir) {
             if (!AreaInfo.ContainsKey(id)) {
                 AreaInfo.Add(id,dir);
+                dirr = dir;
             }
         }
     }
