@@ -4,9 +4,9 @@ using UnityEngine;
 
 public class PatrolManager : MonoBehaviour
 {
-    int ID = 27;
-    Dictionary<string, int> areaDic = new Dictionary<string, int>();
-    Dictionary<string, PatrolArea> existAreas = new Dictionary<string, PatrolArea>();
+    int ID = 33;
+    Dictionary<string, int> areaDic = new Dictionary<string, int>();   //碰撞名和地區的字典
+    Dictionary<string, PatrolArea> existAreas = new Dictionary<string, PatrolArea>();  //已知地區和編號的字典
 
     // Start is called before the first frame update
     void Start()
@@ -24,16 +24,18 @@ public class PatrolManager : MonoBehaviour
 
         if (!areaDic.ContainsKey(name))
         {
+            
             areaDic.Add(name, ID);
             PatrolArea area = new PatrolArea(name);
-            string id = System.Convert.ToString(ID);
+            string id = char.ToString(System.Convert.ToChar(ID));
             existAreas.Add(id, area);
+            //Debug.Log("convert  " + name + " to " + id);
             ID++;
             return id;
 
         }
         else {
-            return System.Convert.ToString(areaDic[name]);
+            return char.ToString(System.Convert.ToChar(areaDic[name]));
             //if (existAreas.ContainsKey(ID))
             //{
             //    PatrolArea area = new PatrolArea();
