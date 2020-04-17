@@ -20,6 +20,24 @@ public class PatrolManager : MonoBehaviour
         
     }
 
+    public string CheckExistArea(string name)
+    {
+        if (name.Length <= 0) return name;
+        if (!areaDic.ContainsKey(name))
+        {
+            areaDic.Add(name, ID);
+            PatrolArea area = new PatrolArea(name);
+            string id = char.ToString(System.Convert.ToChar(ID));
+            existAreas.Add(id, area);
+            ID++;
+            return id;
+        }
+        else
+        {
+            return char.ToString(System.Convert.ToChar(areaDic[name]));
+        }
+    }
+
     public string AddPatrolArea(string name) {
 
         if (!areaDic.ContainsKey(name))

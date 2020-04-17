@@ -17,7 +17,7 @@ namespace PathFinder
         public int blurSize = 3;
         public int chooseOffset;
         int chooseValue;
-
+        
         Dictionary<int, int> walkableRegionsDictionary = new Dictionary<int, int>();
         LayerMask walkableMask;
 
@@ -108,7 +108,7 @@ namespace PathFinder
                         movementPenalty += obstacleProximityPenalty;
                         
                     }
-                    grid[x, y] = new Node(walkable, worldPoint, x, y, movementPenalty, areaNmae);
+                    grid[x, y] = new Node(walkable, worldPoint, x, y, movementPenalty, patrolManager.CheckExistArea(areaNmae));
 
 
                 }
@@ -130,7 +130,7 @@ namespace PathFinder
             for (int y = 0; y < gridSizeY; y++)
             {
                 int areaNum = 0;
-                string[] lastAreaNmae = new string[2] { "E" , "E" } ;   //左,右
+                string[] lastAreaNmae = new string[2] { string.Empty , string.Empty } ;   //左,右
                 int[] lastAreaX = new int[2] { int.MaxValue, int.MaxValue }; //左右
 
                 //最左邊處理
@@ -152,7 +152,7 @@ namespace PathFinder
                                 lastAreaX[1] = sampleX;
                                 areaNum++;
                                 //Debug.Log("0," + y + "  右邊有障礙物 " + lastAreaNmae[1]);
-                                grid[0, y].AddArea(patrolManager.AddPatrolArea(lastAreaNmae[1]), 3);
+                                grid[0, y].AddArea(lastAreaNmae[1], 3);
                             }
                             //Debug.Log(x + "," + y + "  walkable " + grid[sampleX,y].walkable);
                         }
@@ -187,7 +187,7 @@ namespace PathFinder
 
                     if (!grid[x, y].walkable) {
                         //所在格子在障礙物裡要判斷右邊有沒有新障礙物
-                        if (!grid[addIndex, y].walkable && lastAreaNmae[1].CompareTo(grid[addIndex, y].colliderName) != 0)
+                        if (!grid[addIndex, y].walkable && lastAreaNmae[1].CompareTo(grid[addIndex, y].AllAreaName) != 0)
                         {
                             // 將原本在右邊的變左邊
                             lastAreaNmae[0] = lastAreaNmae[1];
@@ -195,12 +195,12 @@ namespace PathFinder
                             areaNum--;
                             
                             //右邊填入新的
-                            lastAreaNmae[1] = grid[addIndex, y].colliderName;
+                            lastAreaNmae[1] = grid[addIndex, y].AllAreaName;
                             lastAreaX[1] = addIndex;
                             areaNum++;
 
-                            if (lastAreaNmae[0].CompareTo("E") != 0) grid[x, y].AddArea(patrolManager.AddPatrolArea(lastAreaNmae[0]), 4);
-                            if (lastAreaNmae[1].CompareTo("E") != 0) grid[x, y].AddArea(patrolManager.AddPatrolArea(lastAreaNmae[1]), 3);
+                            if (lastAreaNmae[0].CompareTo(string.Empty) != 0) grid[x, y].AddArea(lastAreaNmae[0], 4);
+                            if (lastAreaNmae[1].CompareTo(string.Empty) != 0) grid[x, y].AddArea(lastAreaNmae[1], 3);
                         }
                         continue;
                     } 
@@ -210,7 +210,7 @@ namespace PathFinder
                     {
                         lastAreaNmae[0] = grid[x - 1, y].colliderName;
                         lastAreaX[0] = x - 1;
-                        lastAreaNmae[1] = "E";
+                        lastAreaNmae[1] = string.Empty;
                         lastAreaX[1] = int.MaxValue;
                         areaNum--;
                     }
@@ -219,36 +219,38 @@ namespace PathFinder
                         if (!grid[removeIndex, y].walkable && grid[removeIndex + 1, y].walkable && lastAreaX[0] <= removeIndex)
                         {
                             areaNum--;
-                            lastAreaNmae[0] = "E";
+                            lastAreaNmae[0] = string.Empty;
                             lastAreaX[0] = int.MaxValue;
                         }
                     }
 
                     //右邊新的區域
-                    if (!grid[addIndex, y].walkable && lastAreaNmae[1].CompareTo("E") == 0)
+                    if (!grid[addIndex, y].walkable && lastAreaNmae[1].Length == 0)
                     {
                         lastAreaNmae[1] = grid[addIndex, y].colliderName;
                         lastAreaX[1] = addIndex;
                         areaNum++;
                     }
 
-                    if (lastAreaNmae[0].CompareTo("E") != 0) {
-                        string t = patrolManager.AddPatrolArea(lastAreaNmae[0]);
+                    if (lastAreaNmae[0].Length > 0) {
+                        string t = lastAreaNmae[0];
                         Debug.Log("左邊有 " + t);
                         grid[x, y].AddArea(t, 4);
                     }
                     
-                    if (lastAreaNmae[1].CompareTo("E") != 0) grid[x, y].AddArea(patrolManager.AddPatrolArea(lastAreaNmae[1]), 3);
+                    if (lastAreaNmae[1].Length > 0) grid[x, y].AddArea(lastAreaNmae[1], 3);
                 }
             }
 
             for (int x = 0; x < gridSizeX; x++)
             {
                 int areaNum = 0;
-                string[] lastAreaNmae = new string[2] { "E", "E" };   //上,下
+                string[] lastAreaNmae = new string[2] { string.Empty, string.Empty };   //上,下
                 int[] lastAreaY = new int[2] { int.MaxValue, int.MaxValue }; //上,下
-                string lastAreaTilt = "E";
+                string compareTiltArea = string.Empty;
+                string lastTiltArea = string.Empty;
                 Dictionary<string, int> lastAllAreas = new Dictionary<string, int>();
+                List<int> lastAreaTiltY = new List<int>();
 
                 //最下面處理
                 for (int y = -kernelExtents; y <= kernelExtents; y++)
@@ -267,8 +269,8 @@ namespace PathFinder
                                     lastAreaNmae[0] = grid[x, sampleY].colliderName;
                                     lastAreaY[0] = sampleY;
                                     areaNum++;
-                                    grid[x, 0].AddArea(patrolManager.AddPatrolArea(lastAreaNmae[0]), 2);
-                                    Debug.Log(x + ",0" + "  上面有障礙物 " + lastAreaNmae[0]);
+                                    grid[x, 0].AddArea(lastAreaNmae[0], 2);
+                                    Debug.Log(x + ",0" + "  在" + sampleY + "有障礙物 " + lastAreaNmae[0]);
                                 }
                             }
 
@@ -288,22 +290,30 @@ namespace PathFinder
                     }
 
                     //斜方區域，判斷上方新區域
-                    Debug.Log(x + "," + sampleY +  "  new " + grid[x, sampleY].allAreaName + "  last" + lastAreaTilt);
-                    if (grid[x, sampleY].walkable && lastAreaTilt.CompareTo(grid[x, sampleY].allAreaName) != 0)
+                    Debug.Log(x + "," + sampleY +  "  new " + grid[x, sampleY].AllAreaName + "  last" + lastTiltArea);
+                    if (compareTiltArea.CompareTo(grid[x, sampleY].AllAreaName) != 0)  //grid[x, sampleY].walkable && 
                     {
-                        lastAreaTilt = grid[x, sampleY].allAreaName;
-                        //確認新區域沒有在lastAllAreas
-                        foreach (KeyValuePair<string, int> item in grid[x, sampleY].AllAreaInfos)
+                        compareTiltArea = grid[x, sampleY].AllAreaName;
+                        if (!lastTiltArea.Contains(grid[x, sampleY].AllAreaName))
                         {
-                            if (!lastAllAreas.ContainsKey(item.Key))
+                            //確認新區域沒有在lastAllAreas
+                            foreach (KeyValuePair<string, int> item in grid[x, sampleY].AllAreaInfos)
                             {
-                                lastAllAreas.Add(item.Key, sampleY);
+                                if (!lastAllAreas.ContainsKey(item.Key))
+                                {
+                                    lastAllAreas.Add(item.Key, sampleY);
+                                    if (lastTiltArea.Length == 0) lastTiltArea = item.Key;
+                                    else lastTiltArea += item.Key;
+                                }
                             }
-                        }   
+                        }
+                        //新區域都有被包含，紀錄位置
+                        else lastAreaTiltY.Add(sampleY);
+
                     }
                 }
                 //判斷新區域的區域有哪些是有的
-                grid[x, 0].AddAreas(lastAreaTilt, lastAllAreas);  
+                grid[x, 0].AddAreas(lastTiltArea, lastAllAreas);  
                 //grid[x, 0].borderNum++; //最下面 +1 border
 
                 //第一列加上先前水平的權重值定除以格數
@@ -329,22 +339,41 @@ namespace PathFinder
                     }
 
                     //斜方區域，判斷下方離開區域
-                    if (downY >= 0 && grid[x, removeIndex].walkable)
+                    if (downY >= 0 && (lastAreaTiltY.Count>0 && removeIndex >= lastAreaTiltY[0] - 1))
                     {
-                        grid[x, removeIndex].CheckRemoveAreas(grid[x, removeIndex + 1].AllAreaInfos, ref lastAllAreas);
+                        Debug.Log(x + "," + y + "判斷移除 " + removeIndex);
+                        lastAreaTiltY.RemoveAt(0);
+                        grid[x, removeIndex].CheckRemoveAreas(grid[x, y].AllAreaInfos, ref lastAllAreas, ref lastTiltArea);
+                        foreach (KeyValuePair<string, int> item in lastAllAreas)
+                        {
+                            Debug.Log("剩下 " + item.Key);
+                        }
                     }
                     //斜方區域，判斷上方新區域，先跟舊的lastAreaTilt比，看是不是遇到新區域
-                    if (upY < gridSizeY && grid[x, addIndex].walkable && lastAreaTilt.CompareTo(grid[x, addIndex].allAreaName) != 0)
+                    Debug.Log(x + "," + addIndex + "  new " + grid[x, addIndex].AllAreaName + "  last" + compareTiltArea);
+                    if (upY < gridSizeY && compareTiltArea.CompareTo(grid[x, addIndex].AllAreaName) != 0) // grid[x, addIndex].walkable &&
                     {
-                        lastAreaTilt = grid[x, addIndex].allAreaName;
-                        //確認新區域有沒有在lastAllAreas
-                        foreach (KeyValuePair<string, int> item in grid[x, addIndex].AllAreaInfos)
+                        compareTiltArea = grid[x, addIndex].AllAreaName;
+                        Debug.Log(lastTiltArea + " contain " + grid[x, addIndex].AllAreaName + "  is " + lastTiltArea.Contains(grid[x, addIndex].AllAreaName));
+                        if (!lastTiltArea.Contains(grid[x, addIndex].AllAreaName))
                         {
-                            if (!lastAllAreas.ContainsKey(item.Key))
+                            //確認新區域有沒有在lastAllAreas
+                            foreach (KeyValuePair<string, int> item in grid[x, addIndex].AllAreaInfos)
                             {
-                                lastAllAreas.Add(item.Key, addIndex);
+                                if (!lastAllAreas.ContainsKey(item.Key))
+                                {
+                                    lastAllAreas.Add(item.Key, addIndex);
+                                    if (lastTiltArea.Length == 0) lastTiltArea = item.Key;
+                                    else lastTiltArea += item.Key;
+                                }
                             }
+                            Debug.Log("目前包含區域 " + lastTiltArea);
                         }
+                        //新區域都有被包含，紀錄位置
+                        else {
+                            Debug.Log(addIndex + "為 removeIndex");
+                            lastAreaTiltY.Add(addIndex);
+                        } 
                     }
                     //判斷新區域的區域有哪些是有的 377
 
@@ -352,7 +381,8 @@ namespace PathFinder
                         //所在格子在障礙物裡要判斷上面有沒有新障礙物
                         if (!grid[x, addIndex].walkable)
                         {
-                            if (lastAreaNmae[0].CompareTo(grid[x, addIndex].colliderName) != 0)
+                            Debug.Log(x + "," + y + "------- add " + grid[x, addIndex].AllAreaName);
+                            if (lastAreaNmae[0].CompareTo(grid[x, addIndex].AllAreaName) != 0)
                             {
                                 //將原本在上面的變下面
                                 lastAreaNmae[1] = lastAreaNmae[0];
@@ -363,25 +393,26 @@ namespace PathFinder
                                 lastAreaY[0] = addIndex;
                                 areaNum++;
 
-                                if (lastAreaNmae[0].CompareTo("E") != 0) grid[x, y].AddArea(patrolManager.AddPatrolArea(lastAreaNmae[0]), 2);
-                                if (lastAreaNmae[1].CompareTo("E") != 0) grid[x, y].AddArea(patrolManager.AddPatrolArea(lastAreaNmae[1]), 1);
+                                if (lastAreaNmae[0].CompareTo(string.Empty) != 0) grid[x, y].AddArea(lastAreaNmae[0], 2);
+                                if (lastAreaNmae[1].CompareTo(string.Empty) != 0) grid[x, y].AddArea(lastAreaNmae[1], 1);
                             }
-                            if (grid[x, addIndex].allAreaName.CompareTo(lastAreaNmae[0]) != 0) {
-                                lastAreaNmae[0] = grid[x, addIndex].allAreaName;
-                            }
+                            //if (grid[x, addIndex].allAreaName.CompareTo(lastAreaNmae[0]) != 0) {
+                            //    lastAreaNmae[0] = grid[x, addIndex].allAreaName;
+                            //}
                         }   
                         continue;
                     }
+
                     //判斷新區域的區域有哪些是有的
                     //傳入新的lastAreaTilt，可以快速比較跟目前x,y的一不一樣
-                    grid[x, y].AddAreas(lastAreaTilt, lastAllAreas);
+                    grid[x, y].AddAreas(lastTiltArea, lastAllAreas);
 
                     // 從一障礙物邊界出來將原本在上面的變下面
                     if (lastAreaY[0] < y)
                     {
                         lastAreaNmae[1] = grid[x, y - 1].colliderName;
                         lastAreaY[1] = y - 1;
-                        lastAreaNmae[0] = "E";
+                        lastAreaNmae[0] = string.Empty;
                         lastAreaY[0] = int.MaxValue;
                         areaNum--;
                     }
@@ -390,21 +421,21 @@ namespace PathFinder
                         if (!grid[x, removeIndex].walkable && grid[x, removeIndex + 1].walkable && lastAreaY[1] <= removeIndex)
                         {
                             areaNum--;
-                            lastAreaNmae[1] = "E";
+                            lastAreaNmae[1] = string.Empty;
                             lastAreaY[1] = int.MaxValue;
                         }
                     }
 
                     //上面新的區域
-                    if (!grid[x, addIndex].walkable && lastAreaNmae[0].CompareTo("E") == 0)
+                    if (!grid[x, addIndex].walkable && lastAreaNmae[0].Length == 0)
                     {
                         lastAreaNmae[0] = grid[x, addIndex].colliderName;
                         lastAreaY[0] = addIndex;
                         areaNum++;
                     }
 
-                    if (lastAreaNmae[0].CompareTo("E") != 0) grid[x, y].AddArea(patrolManager.AddPatrolArea(lastAreaNmae[0]), 2);
-                    if (lastAreaNmae[1].CompareTo("E") != 0) grid[x, y].AddArea(patrolManager.AddPatrolArea(lastAreaNmae[1]), 1);
+                    if (lastAreaNmae[0].Length != 0) grid[x, y].AddArea(lastAreaNmae[0], 2);
+                    if (lastAreaNmae[1].Length != 0) grid[x, y].AddArea(lastAreaNmae[1], 1);
 
                     blurredPenalty = Mathf.RoundToInt((float)penaltiesVerticalPass[x, y] / (kernelSize * kernelSize));
                     grid[x, y].movementPenalty = blurredPenalty;
