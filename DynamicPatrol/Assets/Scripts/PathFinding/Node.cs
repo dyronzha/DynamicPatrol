@@ -20,25 +20,31 @@ namespace PathFinder
         public Node parent;
         int heapIndex;
 
-        public string colliderName = string.Empty;
+        public bool nearBorder = false;
+
+        int areaID;
+        public int AreaID{
+            get { return areaID; }
+        }
+
         string allAreaName = string.Empty;
         string unwalkableAreaName = string.Empty;
         public string AllAreaName{
             get {
-                if (walkable) return allAreaName;
-                else return unwalkableAreaName;
+                return allAreaName;
             }
         }
         public int borderNum = 0;
 
+        //5 1 6
+        //3   4
+        //7 2 8
         Dictionary<string, int> AreaInfo = new Dictionary<string, int>();  //1234 上下左右
-        Dictionary<string, int> UnwalkableAreaInfo = new Dictionary<string, int>();
         public Dictionary<string, int> AllAreaInfos
         {
             get
             {
-                if (walkable) return AreaInfo;
-                else return UnwalkableAreaInfo;
+                return AreaInfo;
             }
         }
 
@@ -59,19 +65,15 @@ namespace PathFinder
         //    gridY = _gridY;
         //    movementPenalty = _penalty;
         //}
-        public Node(bool _walkable, Vector3 _worldPos, int _gridX, int _gridY, int _penalty, string _area)
+        public Node(bool _walkable, Vector3 _worldPos, int _gridX, int _gridY, int _penalty, string _name,  int _areaID)
         {
             walkable = _walkable;
             worldPosition = _worldPos;
             gridX = _gridX;
             gridY = _gridY;
             movementPenalty = _penalty;
-            colliderName = _area;
-            if (!walkable)
-            {
-                UnwalkableAreaInfo.Add(_area, 0);
-                unwalkableAreaName = _area;
-            }
+            allAreaName = _name;
+            areaID = _areaID;
         }
 
         public int fCost
@@ -113,29 +115,17 @@ namespace PathFinder
             }
         }
 
-        public void AddArea(string id, int dir) {
-            if (walkable)
+        public void AddArea(string id, int dir, bool _nearBorder) {
+            if (!AreaInfo.ContainsKey(id))
             {
-                if (!AreaInfo.ContainsKey(id))
-                {
-                    if (AreaInfo.Count == 0) allAreaName = id;
-                    else allAreaName += id;
-                    AreaInfo.Add(id, dir);
-                    dirr = dir;
-                    //Debug.Log(gridX + "," + gridY + "  加入 " + id + " 總共有 " + allAreaName);
-                }
-                //else Debug.Log("已有 " + id + " 區域");
+                if (AreaInfo.Count == 0) allAreaName = id;
+                else allAreaName += id;
+                AreaInfo.Add(id, dir);
+                dirr = dir;
+                nearBorder = (_nearBorder || nearBorder);
+                //Debug.Log(gridX + "," + gridY + "  加入 " + id + " 總共有 " + allAreaName);
             }
-            else {
-                if (!UnwalkableAreaInfo.ContainsKey(id))
-                {
-                    if (UnwalkableAreaInfo.Count == 0) unwalkableAreaName = id;
-                    else unwalkableAreaName += id;
-                    UnwalkableAreaInfo.Add(id, dir);
-                    dirr = dir;
-                    //Debug.Log(gridX + "," + gridY + "  加入 " + id + " 總共有 " + allAreaName);
-                }
-            }
+            //else Debug.Log("已有 " + id + " 區域");
         }
         public void AddAreas(string allarea, Dictionary<string, int> newAreas)
         {
@@ -172,38 +162,38 @@ namespace PathFinder
             }
         }
 
-        public void CheckRemoveAreas(Dictionary<string, int> upAreas, ref Dictionary<string, int> allAreas, ref string lastArea) {
-            foreach (KeyValuePair<string, int> item in upAreas) {
-                Debug.Log("與現在的比 " + item.Key);
-            }
-            foreach (KeyValuePair<string, int> item in AreaInfo)
-            {
-                Debug.Log(gridX + "," + gridY + "有 " + item.Key + " 比較 " + lastArea);
-                //指判斷刪除橫向的，且沒有的區域
-                if (item.Value > 2 && !upAreas.ContainsKey(item.Key) && allAreas.ContainsKey(item.Key))
-                {
-                    allAreas.Remove(item.Key);
+        //public void CheckRemoveAreas(Dictionary<string, int> upAreas, ref Dictionary<string, int> allAreas, ref string lastArea) {
+        //    foreach (KeyValuePair<string, int> item in upAreas) {
+        //        Debug.Log("與現在的比 " + item.Key);
+        //    }
+        //    foreach (KeyValuePair<string, int> item in AreaInfo)
+        //    {
+        //        Debug.Log(gridX + "," + gridY + "有 " + item.Key + " 比較 " + lastArea);
+        //        //指判斷刪除橫向的，且沒有的區域
+        //        if (item.Value > 2 && !upAreas.ContainsKey(item.Key) && allAreas.ContainsKey(item.Key))
+        //        {
+        //            allAreas.Remove(item.Key);
 
-                    Debug.Log("移除在" + lastArea.IndexOf(item.Key) + "的" + item.Key);
-                    lastArea = lastArea.Remove(lastArea.IndexOf(item.Key), item.Key.Length);
-                    Debug.Log("  剩下" + lastArea + "。");
-                }
-            }
-            if (!walkable)
-            {
-                Debug.Log(gridX + "," + gridY + "有 " + colliderName + " 比較 " + lastArea);
-                //指判斷刪除橫向的，且沒有的區域
-                if (!upAreas.ContainsKey(colliderName) && allAreas.ContainsKey(colliderName))
-                {
-                    allAreas.Remove(colliderName);
+        //            Debug.Log("移除在" + lastArea.IndexOf(item.Key) + "的" + item.Key);
+        //            lastArea = lastArea.Remove(lastArea.IndexOf(item.Key), item.Key.Length);
+        //            Debug.Log("  剩下" + lastArea + "。");
+        //        }
+        //    }
+        //    if (!walkable)
+        //    {
+        //        Debug.Log(gridX + "," + gridY + "有 " + colliderName + " 比較 " + lastArea);
+        //        //指判斷刪除橫向的，且沒有的區域
+        //        if (!upAreas.ContainsKey(colliderName) && allAreas.ContainsKey(colliderName))
+        //        {
+        //            allAreas.Remove(colliderName);
 
-                    Debug.Log("移除在" + lastArea.IndexOf(colliderName) + "的" + colliderName);
-                    lastArea = lastArea.Remove(lastArea.IndexOf(colliderName), colliderName.Length);
-                    Debug.Log("  剩下" + lastArea + "。");
-                }
-            }
+        //            Debug.Log("移除在" + lastArea.IndexOf(colliderName) + "的" + colliderName);
+        //            lastArea = lastArea.Remove(lastArea.IndexOf(colliderName), colliderName.Length);
+        //            Debug.Log("  剩下" + lastArea + "。");
+        //        }
+        //    }
 
-        }
+        //}
     }
 
 }

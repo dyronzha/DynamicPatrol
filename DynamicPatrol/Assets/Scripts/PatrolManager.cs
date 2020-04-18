@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class PatrolManager : MonoBehaviour
 {
-    int ID = 33;
+    int ID = 0;
     Dictionary<string, int> areaDic = new Dictionary<string, int>();   //碰撞名和地區的字典
     Dictionary<string, PatrolArea> existAreas = new Dictionary<string, PatrolArea>();  //已知地區和編號的字典
 
@@ -20,21 +20,21 @@ public class PatrolManager : MonoBehaviour
         
     }
 
-    public string CheckExistArea(string name)
+    public int CheckExistArea(string name)
     {
-        if (name.Length <= 0) return name;
+        if (name.Length <= 0) return -1;
         if (!areaDic.ContainsKey(name))
         {
             areaDic.Add(name, ID);
             PatrolArea area = new PatrolArea(name);
-            string id = char.ToString(System.Convert.ToChar(ID));
-            existAreas.Add(id, area);
+            //string id = char.ToString(System.Convert.ToChar(ID));
+            //existAreas.Add(id, area);
             ID++;
-            return id;
+            return ID-1;
         }
         else
         {
-            return char.ToString(System.Convert.ToChar(areaDic[name]));
+            return areaDic[name];
         }
     }
 

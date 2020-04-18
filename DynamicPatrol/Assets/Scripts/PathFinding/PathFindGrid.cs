@@ -108,7 +108,7 @@ namespace PathFinder
                         movementPenalty += obstacleProximityPenalty;
                         
                     }
-                    grid[x, y] = new Node(walkable, worldPoint, x, y, movementPenalty, patrolManager.CheckExistArea(areaNmae));
+                    grid[x, y] = new Node(walkable, worldPoint, x, y, movementPenalty, areaNmae, patrolManager.CheckExistArea(areaNmae));
 
 
                 }
@@ -129,129 +129,70 @@ namespace PathFinder
 
             for (int y = 0; y < gridSizeY; y++)
             {
-                int areaNum = 0;
-                string[] lastAreaNmae = new string[2] { string.Empty , string.Empty } ;   //左,右
-                int[] lastAreaX = new int[2] { int.MaxValue, int.MaxValue }; //左右
+                //將邊界視為區域
+                //if (y == 0) grid[0, y].AddArea("Down", 1, true);
+                //else if (y == gridSizeY - 1) grid[0, y].AddArea("Up", 2, true);
+                grid[0, y].AddArea("Left", 4, true);
 
                 //最左邊處理
                 for (int x = -kernelExtents; x <= kernelExtents; x++)
                 {
-                    
                     int sampleX = Mathf.Clamp(x, 0, kernelExtents);
-
                     if (grid[0, y].walkable)  //如果最左邊可以走，要確認右邊區域
                     {
-                        if (x < 0) penaltiesHorizontalPass[0, y] += obstacleProximityPenalty;
+                        if (x < 0) penaltiesHorizontalPass[0, y] += obstacleProximityPenalty * kernelExtents;
                         else
                         {
                             penaltiesHorizontalPass[0, y] += grid[sampleX, y].movementPenalty;
                             //最左邊的只要確定右邊第一次碰撞區
-                            if (areaNum == 0 && !grid[sampleX, y].walkable)
+                            if (sampleX == 1 && !grid[sampleX, y].walkable)
                             {
-                                lastAreaNmae[1] = grid[sampleX, y].colliderName;
-                                lastAreaX[1] = sampleX;
-                                areaNum++;
-                                //Debug.Log("0," + y + "  右邊有障礙物 " + lastAreaNmae[1]);
-                                grid[0, y].AddArea(lastAreaNmae[1], 3);
+                                grid[0, y].AddArea(grid[sampleX, y].AllAreaName, 3, false);
                             }
-                            //Debug.Log(x + "," + y + "  walkable " + grid[sampleX,y].walkable);
                         }
-                        
                     }
-                    else {//不能走，直接填右邊區域為自己碰撞物
-                        if (areaNum == 0) {
-                            lastAreaNmae[1] = grid[0, y].colliderName;
-                            lastAreaX[1] = 0;
-                            areaNum++;
-                        }
-                        if (x < 0) penaltiesHorizontalPass[0, y] += obstacleProximityPenalty;
+                    else {//不能走，增加權重
+                        if (x < 0) penaltiesHorizontalPass[0, y] += obstacleProximityPenalty*kernelExtents;
                         else penaltiesHorizontalPass[0, y] += grid[sampleX, y].movementPenalty;
                     }
+                    
                 }
-                //grid[0, y].borderNum++; //最左邊 +1 border
-
                 for (int x = 1; x < gridSizeX; x++)
                 {
                     
                     int removeIndex = Mathf.Clamp(x - kernelExtents - 1, 0, gridSizeX-1); //x - kernelExtents - 1
                     int addIndex = Mathf.Clamp(x + kernelExtents, 0, gridSizeX - 1);
 
-                    if (x + kernelExtents >= gridSizeX && grid[addIndex, y].walkable) //如果會算到最右邊且可以走的格子，加上一點權重。不要太靠邊
+                    if (x + kernelExtents >= gridSizeX) //如果會算到最右邊且可以走的格子，加上一點權重。不要太靠邊
                     {
                         penaltiesHorizontalPass[x, y] = penaltiesHorizontalPass[x - 1, y] - grid[removeIndex, y].movementPenalty + obstacleProximityPenalty;
-                        //grid[x, y].borderNum++; //最右邊 +1 border
                     }
                     else {
                         penaltiesHorizontalPass[x, y] = penaltiesHorizontalPass[x - 1, y] - grid[removeIndex, y].movementPenalty + grid[addIndex, y].movementPenalty;
                     }
 
-                    if (!grid[x, y].walkable) {
-                        //所在格子在障礙物裡要判斷右邊有沒有新障礙物
-                        if (!grid[addIndex, y].walkable && lastAreaNmae[1].CompareTo(grid[addIndex, y].AllAreaName) != 0)
+                    if (grid[x, y].walkable) {
+                        //左邊有障礙
+                        if (!grid[x - 1, y].walkable)
                         {
-                            // 將原本在右邊的變左邊
-                            lastAreaNmae[0] = lastAreaNmae[1];
-                            lastAreaX[0] = x;
-                            areaNum--;
-                            
-                            //右邊填入新的
-                            lastAreaNmae[1] = grid[addIndex, y].AllAreaName;
-                            lastAreaX[1] = addIndex;
-                            areaNum++;
-
-                            if (lastAreaNmae[0].CompareTo(string.Empty) != 0) grid[x, y].AddArea(lastAreaNmae[0], 4);
-                            if (lastAreaNmae[1].CompareTo(string.Empty) != 0) grid[x, y].AddArea(lastAreaNmae[1], 3);
+                            grid[x, y].AddArea(grid[x - 1, y].AllAreaName, 4, false);
                         }
-                        continue;
-                    } 
-
-                    // 從一障礙物邊界出來將原本在右邊的變左邊
-                    if (lastAreaX[1] < x)
-                    {
-                        lastAreaNmae[0] = grid[x - 1, y].colliderName;
-                        lastAreaX[0] = x - 1;
-                        lastAreaNmae[1] = string.Empty;
-                        lastAreaX[1] = int.MaxValue;
-                        areaNum--;
-                    }
-                    else
-                    { //只要不是從一區域剛出來，要看有沒有離開左邊區域
-                        if (!grid[removeIndex, y].walkable && grid[removeIndex + 1, y].walkable && lastAreaX[0] <= removeIndex)
+                        //右邊有障礙
+                        if (x + 1 <= gridSizeX - 1)
                         {
-                            areaNum--;
-                            lastAreaNmae[0] = string.Empty;
-                            lastAreaX[0] = int.MaxValue;
+                            if (!grid[x + 1, y].walkable)
+                            {
+                                grid[x, y].AddArea(grid[x + 1, y].AllAreaName, 3, false);
+                            }
                         }
+                        else grid[x, y].AddArea("Right", 3, true);
                     }
-
-                    //右邊新的區域
-                    if (!grid[addIndex, y].walkable && lastAreaNmae[1].Length == 0)
-                    {
-                        lastAreaNmae[1] = grid[addIndex, y].colliderName;
-                        lastAreaX[1] = addIndex;
-                        areaNum++;
-                    }
-
-                    if (lastAreaNmae[0].Length > 0) {
-                        string t = lastAreaNmae[0];
-                        Debug.Log("左邊有 " + t);
-                        grid[x, y].AddArea(t, 4);
-                    }
-                    
-                    if (lastAreaNmae[1].Length > 0) grid[x, y].AddArea(lastAreaNmae[1], 3);
                 }
             }
 
             for (int x = 0; x < gridSizeX; x++)
             {
-                int areaNum = 0;
-                string[] lastAreaNmae = new string[2] { string.Empty, string.Empty };   //上,下
-                int[] lastAreaY = new int[2] { int.MaxValue, int.MaxValue }; //上,下
-                string compareTiltArea = string.Empty;
-                string lastTiltArea = string.Empty;
-                Dictionary<string, int> lastAllAreas = new Dictionary<string, int>();
-                List<int> lastAreaTiltY = new List<int>();
-
+                grid[x, 0].AddArea("Down", 1, true);
                 //最下面處理
                 for (int y = -kernelExtents; y <= kernelExtents; y++)
                 {
@@ -259,184 +200,59 @@ namespace PathFinder
 
                     if (grid[x, 0].walkable)//如果最下面可以走，要確認上面區域
                     {
-                        if (y < 0) penaltiesVerticalPass[x,0] += obstacleProximityPenalty * kernelExtents;
+                        if (y < 0) penaltiesVerticalPass[x, 0] += obstacleProximityPenalty * kernelExtents;//* kernelExtents;
                         else
                         {
-                            penaltiesVerticalPass[x,0] += penaltiesHorizontalPass[x,sampleY];
+                            penaltiesVerticalPass[x, 0] += penaltiesHorizontalPass[x, sampleY];
                             //最下面的只要確定上面第一次碰撞區
-                            if (areaNum == 0) {
-                                if (!grid[x, sampleY].walkable) {
-                                    lastAreaNmae[0] = grid[x, sampleY].colliderName;
-                                    lastAreaY[0] = sampleY;
-                                    areaNum++;
-                                    grid[x, 0].AddArea(lastAreaNmae[0], 2);
-                                    Debug.Log(x + ",0" + "  在" + sampleY + "有障礙物 " + lastAreaNmae[0]);
-                                }
+                            if (sampleY == 1 && !grid[x, sampleY].walkable)
+                            {
+                                grid[x, 0].AddArea(grid[x, sampleY].AllAreaName, 2, false);
                             }
-
-                            //Debug.Log(x + "," + y + "  walkable " + grid[x, sampleY].walkable);
                         }
                     }
                     else //不能走，直接填上面區域為自己碰撞物
                     {
-                        if (areaNum == 0)
-                        {
-                            lastAreaNmae[0] = grid[x,0].colliderName;
-                            lastAreaY[0] = 0;
-                            areaNum++;
-                        }
-                        if (y < 0) penaltiesVerticalPass[x, 0] += obstacleProximityPenalty*kernelExtents;
+                        if (y < 0) penaltiesVerticalPass[x, 0] += obstacleProximityPenalty * kernelExtents;// *kernelExtents;
                         else penaltiesVerticalPass[x,0] += penaltiesHorizontalPass[x, sampleY];
                     }
-
-                    //斜方區域，判斷上方新區域
-                    Debug.Log(x + "," + sampleY +  "  new " + grid[x, sampleY].AllAreaName + "  last" + lastTiltArea);
-                    if (compareTiltArea.CompareTo(grid[x, sampleY].AllAreaName) != 0)  //grid[x, sampleY].walkable && 
-                    {
-                        compareTiltArea = grid[x, sampleY].AllAreaName;
-                        if (!lastTiltArea.Contains(grid[x, sampleY].AllAreaName))
-                        {
-                            //確認新區域沒有在lastAllAreas
-                            foreach (KeyValuePair<string, int> item in grid[x, sampleY].AllAreaInfos)
-                            {
-                                if (!lastAllAreas.ContainsKey(item.Key))
-                                {
-                                    lastAllAreas.Add(item.Key, sampleY);
-                                    if (lastTiltArea.Length == 0) lastTiltArea = item.Key;
-                                    else lastTiltArea += item.Key;
-                                }
-                            }
-                        }
-                        //新區域都有被包含，紀錄位置
-                        else lastAreaTiltY.Add(sampleY);
-
-                    }
                 }
-                //判斷新區域的區域有哪些是有的
-                grid[x, 0].AddAreas(lastTiltArea, lastAllAreas);  
-                //grid[x, 0].borderNum++; //最下面 +1 border
 
                 //第一列加上先前水平的權重值定除以格數
                 int blurredPenalty = Mathf.RoundToInt((float)penaltiesVerticalPass[x, 0] / (kernelSize * kernelSize));
-                grid[x, 0].movementPenalty = (grid[x,0].AreaNum > 1)?blurredPenalty/ grid[x, 0].AreaNum: blurredPenalty;
+                grid[x, 0].movementPenalty = blurredPenalty;
                 
 
                 for (int y = 1; y < gridSizeY; y++)
                 {
                     int upY = y + kernelExtents;
                     int downY = y - kernelExtents;
-                    int removeIndex = Mathf.Clamp(downY - 1, 0, gridSizeY-1); //y - kernelExtents - 1
-                    int addIndex = Mathf.Clamp(upY, 0, gridSizeY - 1);
+                    int removeIndex = Mathf.Clamp(y - kernelExtents - 1, 0, gridSizeY-1); //y - kernelExtents - 1
+                    int addIndex = Mathf.Clamp(y + kernelExtents, 0, gridSizeY - 1);
 
-                    if (upY >= gridSizeY && grid[x, addIndex].walkable) //如果會算到最上面且可以走的格子，加上一點權重。不要太靠邊
+                    if (y + kernelExtents >= gridSizeY) //如果會算到最上面且可以走的格子，加上一點權重。不要太靠邊
                     {
-                        penaltiesVerticalPass[x, y] = penaltiesVerticalPass[x, y-1] - penaltiesHorizontalPass[x, removeIndex] + obstacleProximityPenalty*kernelExtents;
-                        //grid[x, y].borderNum++; //最上面 +1 border
+                        penaltiesVerticalPass[x, y] = penaltiesVerticalPass[x, y - 1] - penaltiesHorizontalPass[x, removeIndex] + obstacleProximityPenalty * kernelExtents;// *kernelExtents;
                     }
                     else
                     {
                         penaltiesVerticalPass[x, y] = penaltiesVerticalPass[x, y - 1] - penaltiesHorizontalPass[x, removeIndex] + penaltiesHorizontalPass[x, addIndex];
                     }
 
-                    //斜方區域，判斷下方離開區域
-                    if (downY >= 0 && (lastAreaTiltY.Count>0 && removeIndex >= lastAreaTiltY[0] - 1))
-                    {
-                        Debug.Log(x + "," + y + "判斷移除 " + removeIndex);
-                        lastAreaTiltY.RemoveAt(0);
-                        grid[x, removeIndex].CheckRemoveAreas(grid[x, y].AllAreaInfos, ref lastAllAreas, ref lastTiltArea);
-                        foreach (KeyValuePair<string, int> item in lastAllAreas)
+                    if (grid[x, y].walkable) {
+                        //下面有障礙
+                        if (!grid[x, y - 1].walkable)
                         {
-                            Debug.Log("剩下 " + item.Key);
+                            grid[x, y].AddArea(grid[x, y - 1].AllAreaName, 1, false);
                         }
-                    }
-                    //斜方區域，判斷上方新區域，先跟舊的lastAreaTilt比，看是不是遇到新區域
-                    Debug.Log(x + "," + addIndex + "  new " + grid[x, addIndex].AllAreaName + "  last" + compareTiltArea);
-                    if (upY < gridSizeY && compareTiltArea.CompareTo(grid[x, addIndex].AllAreaName) != 0) // grid[x, addIndex].walkable &&
-                    {
-                        compareTiltArea = grid[x, addIndex].AllAreaName;
-                        Debug.Log(lastTiltArea + " contain " + grid[x, addIndex].AllAreaName + "  is " + lastTiltArea.Contains(grid[x, addIndex].AllAreaName));
-                        if (!lastTiltArea.Contains(grid[x, addIndex].AllAreaName))
+                        //上面有障礙
+                        if (y + 1 <= gridSizeY - 1)
                         {
-                            //確認新區域有沒有在lastAllAreas
-                            foreach (KeyValuePair<string, int> item in grid[x, addIndex].AllAreaInfos)
-                            {
-                                if (!lastAllAreas.ContainsKey(item.Key))
-                                {
-                                    lastAllAreas.Add(item.Key, addIndex);
-                                    if (lastTiltArea.Length == 0) lastTiltArea = item.Key;
-                                    else lastTiltArea += item.Key;
-                                }
-                            }
-                            Debug.Log("目前包含區域 " + lastTiltArea);
+                            if (!grid[x, y + 1].walkable)
+                                grid[x, y].AddArea(grid[x, y + 1].AllAreaName, 2, false);
                         }
-                        //新區域都有被包含，紀錄位置
-                        else {
-                            Debug.Log(addIndex + "為 removeIndex");
-                            lastAreaTiltY.Add(addIndex);
-                        } 
+                        else grid[x, y].AddArea("Up", 2, true);
                     }
-                    //判斷新區域的區域有哪些是有的 377
-
-                    if (!grid[x, y].walkable) {
-                        //所在格子在障礙物裡要判斷上面有沒有新障礙物
-                        if (!grid[x, addIndex].walkable)
-                        {
-                            Debug.Log(x + "," + y + "------- add " + grid[x, addIndex].AllAreaName);
-                            if (lastAreaNmae[0].CompareTo(grid[x, addIndex].AllAreaName) != 0)
-                            {
-                                //將原本在上面的變下面
-                                lastAreaNmae[1] = lastAreaNmae[0];
-                                lastAreaY[1] = y;
-                                areaNum--;
-
-                                lastAreaNmae[0] = grid[x, addIndex].colliderName;
-                                lastAreaY[0] = addIndex;
-                                areaNum++;
-
-                                if (lastAreaNmae[0].CompareTo(string.Empty) != 0) grid[x, y].AddArea(lastAreaNmae[0], 2);
-                                if (lastAreaNmae[1].CompareTo(string.Empty) != 0) grid[x, y].AddArea(lastAreaNmae[1], 1);
-                            }
-                            //if (grid[x, addIndex].allAreaName.CompareTo(lastAreaNmae[0]) != 0) {
-                            //    lastAreaNmae[0] = grid[x, addIndex].allAreaName;
-                            //}
-                        }   
-                        continue;
-                    }
-
-                    //判斷新區域的區域有哪些是有的
-                    //傳入新的lastAreaTilt，可以快速比較跟目前x,y的一不一樣
-                    grid[x, y].AddAreas(lastTiltArea, lastAllAreas);
-
-                    // 從一障礙物邊界出來將原本在上面的變下面
-                    if (lastAreaY[0] < y)
-                    {
-                        lastAreaNmae[1] = grid[x, y - 1].colliderName;
-                        lastAreaY[1] = y - 1;
-                        lastAreaNmae[0] = string.Empty;
-                        lastAreaY[0] = int.MaxValue;
-                        areaNum--;
-                    }
-                    else
-                    { //只要不是從一區域剛出來，要看有沒有離開下面區域
-                        if (!grid[x, removeIndex].walkable && grid[x, removeIndex + 1].walkable && lastAreaY[1] <= removeIndex)
-                        {
-                            areaNum--;
-                            lastAreaNmae[1] = string.Empty;
-                            lastAreaY[1] = int.MaxValue;
-                        }
-                    }
-
-                    //上面新的區域
-                    if (!grid[x, addIndex].walkable && lastAreaNmae[0].Length == 0)
-                    {
-                        lastAreaNmae[0] = grid[x, addIndex].colliderName;
-                        lastAreaY[0] = addIndex;
-                        areaNum++;
-                    }
-
-                    if (lastAreaNmae[0].Length != 0) grid[x, y].AddArea(lastAreaNmae[0], 2);
-                    if (lastAreaNmae[1].Length != 0) grid[x, y].AddArea(lastAreaNmae[1], 1);
-
                     blurredPenalty = Mathf.RoundToInt((float)penaltiesVerticalPass[x, y] / (kernelSize * kernelSize));
                     grid[x, y].movementPenalty = blurredPenalty;
                     //grid[x, y].movementPenalty = (grid[x, y].AreaNum > 1) ? blurredPenalty / grid[x, y].AreaNum : blurredPenalty;
@@ -529,31 +345,31 @@ namespace PathFinder
             {
                 foreach (Node n in grid)
                 {
-                    if (!n.walkable)
-                    {
-                        Gizmos.color = Color.black;
-                        Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter));
-                        continue;
-                    }
-                    Gizmos.color = Color.white;
-                    if (n.AreaNum > 0)
-                    {
-                        if (n.AreaNum == 1)
-                        {
-                            if (n.dirr == 1) Gizmos.color = Color.blue;
-                            else if (n.dirr == 2) Gizmos.color = Color.yellow;
-                            else if (n.dirr == 3) Gizmos.color = Color.red;
-                            else if (n.dirr == 4) Gizmos.color = Color.green;
-                        }
-                        else
-                        {
-                            Gizmos.color = Color.cyan;
-                        }
-                    }
+                    //if (!n.walkable)
+                    //{
+                    //    Gizmos.color = Color.black;
+                    //    Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter));
+                    //    continue;
+                    //}
+                    //Gizmos.color = Color.white;
+                    //if (n.AreaNum > 0)
+                    //{
+                    //    if (n.AreaNum == 1)
+                    //    {
+                    //        if (n.dirr == 1) Gizmos.color = Color.blue;
+                    //        else if (n.dirr == 2) Gizmos.color = Color.yellow;
+                    //        else if (n.dirr == 3) Gizmos.color = Color.red;
+                    //        else if (n.dirr == 4) Gizmos.color = Color.green;
+                    //    }
+                    //    else
+                    //    {
+                    //        Gizmos.color = Color.cyan;
+                    //    }
+                    //}
 
+                    Gizmos.color = Color.Lerp(Color.white, Color.black, Mathf.InverseLerp(penaltyMin, penaltyMax, n.movementPenalty));
+                    Gizmos.color = (n.walkable) ? Gizmos.color : Color.red;
 
-                    //Gizmos.color = Color.Lerp(Color.white, Color.black, Mathf.InverseLerp(penaltyMin, penaltyMax, n.movementPenalty));
-                    //Gizmos.color = (n.walkable) ? Gizmos.color : Color.red;
                     Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter));
                 }
             }
