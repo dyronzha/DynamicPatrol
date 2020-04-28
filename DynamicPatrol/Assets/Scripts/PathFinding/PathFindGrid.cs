@@ -29,7 +29,7 @@ namespace PathFinder
         int penaltyMin = int.MaxValue;
         int penaltyMax = int.MinValue;
 
-        float offsetX, offsetY;
+        float offsetX, offsetZ;
 
         List<Vector2> disappearBarrier = new List<Vector2>();
 
@@ -52,9 +52,11 @@ namespace PathFinder
                 walkableRegionsDictionary.Add((int)Mathf.Log(region.terrainMask.value, 2), region.terrainPenalty);
             }
 
+            patrolManager.CheckExistArea("Border");
             CreateGrid();
+
             offsetX = transform.position.x;
-            offsetY = transform.position.y;
+            offsetZ = transform.position.z;
 
             chooseValue = Mathf.FloorToInt(obstacleProximityPenalty / (blurSize*blurSize)) + chooseOffset;
 
@@ -108,8 +110,8 @@ namespace PathFinder
                         movementPenalty += obstacleProximityPenalty;
                         
                     }
-                    grid[x, y] = new Node(walkable, worldPoint, x, y, movementPenalty, areaNmae, patrolManager.CheckExistArea(areaNmae));
-
+                    grid[x, y] = new Node(walkable, worldPoint, x, y, movementPenalty, areaNmae);
+                    patrolManager.CheckExistArea(areaNmae);
 
                 }
             }
@@ -130,9 +132,49 @@ namespace PathFinder
             for (int y = 0; y < gridSizeY; y++)
             {
                 //將邊界視為區域
-                //if (y == 0) grid[0, y].AddArea("Down", 1, true);
-                //else if (y == gridSizeY - 1) grid[0, y].AddArea("Up", 2, true);
-                grid[0, y].AddArea("Left", 4, true);
+                //if (grid[0, y].walkable) {
+                //    grid[0, y].AddArea("Border", 13, patrolManager);
+                //    右邊
+                //    if (!grid[1, y].walkable) {
+                //        grid[0, y].AddArea(grid[1, y].ColliderName, 12, patrolManager);
+                //    }
+                //    上面
+                //    if (y < gridSizeY-1)
+                //    {
+                //        if (!grid[0, y + 1].walkable) {
+                //            grid[0, y].AddArea(grid[0, y + 1].ColliderName, 14, patrolManager);
+                //        }
+                //        右上
+                //        if (!grid[1, y + 1].walkable)
+                //        {
+                //            grid[0, y].AddArea(grid[1, y + 1].ColliderName, 26, patrolManager);
+                //        }
+                //    }
+                //    else {
+                //        grid[0, y].AddArea("Border", 27, patrolManager);
+                //    }
+                //    下面
+                //    if (y > 0)
+                //    {
+                //        if (!grid[0, y - 1].walkable)
+                //        {
+                //            grid[0, y].AddArea(grid[0, y - 1].ColliderName, 11, patrolManager);
+                //        }
+                //        右下
+                //        if (!grid[1, y - 1].walkable)
+                //        {
+                //            grid[0, y].AddArea(grid[1, y - 1].ColliderName, 23, patrolManager);
+                //        }
+                //    }
+                //    else {
+                //        grid[0, y].AddArea("Border", 24, patrolManager);
+                //    }
+                //}
+                if (grid[0, y].walkable) {
+                    if (y == 0) grid[0, y].AddArea("Border", 24, patrolManager);
+                    else if (y == gridSizeY - 1) grid[0, y].AddArea("Border", 27, patrolManager);
+                    else grid[0, y].AddArea("Border", 13, patrolManager);
+                }
 
                 //最左邊處理
                 for (int x = -kernelExtents; x <= kernelExtents; x++)
@@ -144,11 +186,6 @@ namespace PathFinder
                         else
                         {
                             penaltiesHorizontalPass[0, y] += grid[sampleX, y].movementPenalty;
-                            //最左邊的只要確定右邊第一次碰撞區
-                            if (sampleX == 1 && !grid[sampleX, y].walkable)
-                            {
-                                grid[0, y].AddArea(grid[sampleX, y].AllAreaName, 3, false);
-                            }
                         }
                     }
                     else {//不能走，增加權重
@@ -171,28 +208,83 @@ namespace PathFinder
                         penaltiesHorizontalPass[x, y] = penaltiesHorizontalPass[x - 1, y] - grid[removeIndex, y].movementPenalty + grid[addIndex, y].movementPenalty;
                     }
 
+                    //if (grid[x, y].walkable) {
+                    //    for (int i = -1; i <= 1; i++) {
+                    //        if (x + i >= gridSizeX)
+                    //        {
+                    //            if (y == 0) grid[x, y].AddArea("Border", 23, patrolManager);
+                    //            else if (y == gridSizeY - 1) grid[x, y].AddArea("Border", 26, patrolManager);
+                    //            else grid[x, y].AddArea("Border", 12, patrolManager);
+                    //        }
+                    //        else {
+                    //            for (int j = -1; j <= 1; j++)
+                    //            {
+                    //                if ((i == 0 && j == 0) || y+j < 0 || y+j > gridSizeY-1) continue;
+                    //                if (!grid[x + i, y + j].walkable) {
+                    //                    if (i == -1)
+                    //                    {
+                    //                        if (j == -1) grid[x, y].AddArea(grid[x + i, y + j].ColliderName, 24, patrolManager);
+                    //                        else if (j == 0) grid[x, y].AddArea(grid[x + i, y + j].ColliderName, 13, patrolManager);
+                    //                        else grid[x, y].AddArea(grid[x + i, y + j].ColliderName, 27, patrolManager);
+                    //                    }
+                    //                    else if (i == 0)
+                    //                    {
+                    //                        if (j == -1) grid[x, y].AddArea(grid[x + i, y + j].ColliderName, 11, patrolManager);
+                    //                        else grid[x, y].AddArea(grid[x + i, y + j].ColliderName, 14, patrolManager);
+                    //                    }
+                    //                    else {
+                    //                        if (j == -1) grid[x, y].AddArea(grid[x + i, y + j].ColliderName, 23, patrolManager);
+                    //                        else if (j == 0) grid[x, y].AddArea(grid[x + i, y + j].ColliderName, 12, patrolManager);
+                    //                        else grid[x, y].AddArea(grid[x + i, y + j].ColliderName, 26, patrolManager);
+                    //                    }
+                    //                }
+                    //            }
+                    //        }
+                    //    }
+                    //    //if ((dir >= 11 && dir <= 14) || (dir >= 23 && dir <= 27 && dir != 25))
+                    //    //{
+                    //    //    grid[x, y].AddArea(area, dir, false, patrolManager);
+                    //    //}
+                    //    //else if(grid[x, y].LastAreaName.Length > 0)
+                    //    //{
+                    //    //    grid[x, y].RemoveArea(patrolManager);
+                    //    //}
+                    //}
+
                     if (grid[x, y].walkable) {
                         //左邊有障礙
                         if (!grid[x - 1, y].walkable)
                         {
-                            grid[x, y].AddArea(grid[x - 1, y].AllAreaName, 4, false);
+                            grid[x, y].AddArea(grid[x - 1, y].ColliderName, 13, patrolManager);
                         }
                         //右邊有障礙
-                        if (x + 1 <= gridSizeX - 1)
+                        if (x < gridSizeX - 1)
                         {
                             if (!grid[x + 1, y].walkable)
                             {
-                                grid[x, y].AddArea(grid[x + 1, y].AllAreaName, 3, false);
+                                grid[x, y].AddArea(grid[x + 1, y].ColliderName, 12, patrolManager);
                             }
                         }
-                        else grid[x, y].AddArea("Right", 3, true);
+                        else {
+                            if (y == 0) grid[x, y].AddArea("Border", 23, patrolManager);
+                            else if (y == gridSizeY - 1) grid[x, y].AddArea("Border", 26, patrolManager);
+                            else grid[x, y].AddArea("Border", 12, patrolManager);
+                        } 
                     }
                 }
             }
 
             for (int x = 0; x < gridSizeX; x++)
             {
-                grid[x, 0].AddArea("Down", 1, true);
+                if (grid[x, 0].walkable)
+                {
+                    if(x > 0 && x < gridSizeX-1) grid[x, 0].AddArea("Border", 11, patrolManager);
+                    if (!grid[x, 1].walkable)
+                    {
+                        grid[x, 0].AddArea(grid[x, 1].ColliderName, 14, patrolManager);
+                    }
+                }
+
                 //最下面處理
                 for (int y = -kernelExtents; y <= kernelExtents; y++)
                 {
@@ -204,11 +296,6 @@ namespace PathFinder
                         else
                         {
                             penaltiesVerticalPass[x, 0] += penaltiesHorizontalPass[x, sampleY];
-                            //最下面的只要確定上面第一次碰撞區
-                            if (sampleY == 1 && !grid[x, sampleY].walkable)
-                            {
-                                grid[x, 0].AddArea(grid[x, sampleY].AllAreaName, 2, false);
-                            }
                         }
                     }
                     else //不能走，直接填上面區域為自己碰撞物
@@ -239,20 +326,55 @@ namespace PathFinder
                         penaltiesVerticalPass[x, y] = penaltiesVerticalPass[x, y - 1] - penaltiesHorizontalPass[x, removeIndex] + penaltiesHorizontalPass[x, addIndex];
                     }
 
-                    if (grid[x, y].walkable) {
+                    if (grid[x, y].walkable)
+                    {
                         //下面有障礙
                         if (!grid[x, y - 1].walkable)
                         {
-                            grid[x, y].AddArea(grid[x, y - 1].AllAreaName, 1, false);
+                            grid[x, y].AddArea(grid[x, y - 1].ColliderName, 11, patrolManager);
                         }
                         //上面有障礙
-                        if (y + 1 <= gridSizeY - 1)
+                        if (y < gridSizeY - 1)
                         {
                             if (!grid[x, y + 1].walkable)
-                                grid[x, y].AddArea(grid[x, y + 1].AllAreaName, 2, false);
+                            {
+                                grid[x, y].AddArea(grid[x, y + 1].ColliderName, 14, patrolManager);
+                            }
                         }
-                        else grid[x, y].AddArea("Up", 2, true);
+                        else
+                        {
+                            if(x > 0 && x < gridSizeX - 1) grid[x, y].AddArea("Border", 14, patrolManager);
+                        }
+
+                        //斜方判斷
+                        if (grid[x, y].canChoose) {
+                            for (int i = -1; i <= 1; i += 2)
+                            {
+                                if (!grid[x, y].canChoose) break;
+                                for (int j = -1; j <= 1; j += 2)
+                                {
+                                    if (!grid[x, y].canChoose) break;
+                                    int _x = x + i;
+                                    int _y = y + j;
+                                    if (_x >= 0 && _x <= gridSizeX - 1 && _y >= 0 && _y <= gridSizeY - 1 && !grid[_x, _y].walkable)
+                                    {
+                                        if (i == -1)
+                                        {
+                                            if (j == -1) grid[x, y].AddArea(grid[_x, _y].ColliderName, 24, patrolManager);
+                                            else grid[x, y].AddArea(grid[_x, _y].ColliderName, 27, patrolManager);
+                                        }
+                                        else
+                                        {
+                                            if (j == -1) grid[x, y].AddArea(grid[_x, _y].ColliderName, 23, patrolManager);
+                                            else grid[x, y].AddArea(grid[_x, _y].ColliderName, 26, patrolManager);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
                     }
+
                     blurredPenalty = Mathf.RoundToInt((float)penaltiesVerticalPass[x, y] / (kernelSize * kernelSize));
                     grid[x, y].movementPenalty = blurredPenalty;
                     //grid[x, y].movementPenalty = (grid[x, y].AreaNum > 1) ? blurredPenalty / grid[x, y].AreaNum : blurredPenalty;
@@ -309,7 +431,7 @@ namespace PathFinder
         public Node NodeFromWorldPoint(Vector3 worldPosition)
         {
             float percentX = (worldPosition.x - offsetX + gridWorldSize.x / 2) / gridWorldSize.x;
-            float percentY = (worldPosition.z - offsetY + gridWorldSize.y / 2) / gridWorldSize.y;
+            float percentY = (worldPosition.z - offsetZ + gridWorldSize.y / 2) / gridWorldSize.y;
             percentX = Mathf.Clamp01(percentX);
             percentY = Mathf.Clamp01(percentY);
 
@@ -320,7 +442,7 @@ namespace PathFinder
 
         public bool CheckInGrid(Vector3 worldPosition) {
             float percentX = (worldPosition.x - offsetX + gridWorldSize.x / 2) / gridWorldSize.x;
-            float percentY = (worldPosition.z - offsetY + gridWorldSize.y / 2) / gridWorldSize.y;
+            float percentY = (worldPosition.z - offsetZ + gridWorldSize.y / 2) / gridWorldSize.y;
             percentX = Mathf.Clamp01(percentX);
             percentY = Mathf.Clamp01(percentY);
 
@@ -345,30 +467,25 @@ namespace PathFinder
             {
                 foreach (Node n in grid)
                 {
-                    //if (!n.walkable)
-                    //{
-                    //    Gizmos.color = Color.black;
-                    //    Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter));
-                    //    continue;
-                    //}
-                    //Gizmos.color = Color.white;
-                    //if (n.AreaNum > 0)
-                    //{
-                    //    if (n.AreaNum == 1)
-                    //    {
-                    //        if (n.dirr == 1) Gizmos.color = Color.blue;
-                    //        else if (n.dirr == 2) Gizmos.color = Color.yellow;
-                    //        else if (n.dirr == 3) Gizmos.color = Color.red;
-                    //        else if (n.dirr == 4) Gizmos.color = Color.green;
-                    //    }
-                    //    else
-                    //    {
-                    //        Gizmos.color = Color.cyan;
-                    //    }
-                    //}
+                    if (!n.walkable)
+                    {
+                        Gizmos.color = Color.black;
+                        Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter));
+                        continue;
+                    }
+                    Gizmos.color = Color.white;
+                    //Debug.Log(n.locNmae + "  " +  n.Direction);
+                    if (n.Direction == 11) Gizmos.color = new Color(1, 0, 0);
+                    else if (n.Direction == 12) Gizmos.color = new Color(0, 0, 1);
+                    else if (n.Direction == 13) Gizmos.color = new Color(0, 1, 0);
+                    else if (n.Direction == 14) Gizmos.color = new Color(0.5f, 0, 0);
+                    else if (n.Direction == 23) Gizmos.color = new Color(1, 0, 1);
+                    else if (n.Direction == 24) Gizmos.color = new Color(1, 1, 0);
+                    else if (n.Direction == 26) Gizmos.color = new Color(0.5f, 0, 0.5f);
+                    else if (n.Direction == 27) Gizmos.color = new Color(0.5f, 0.5f, 0f);
 
-                    Gizmos.color = Color.Lerp(Color.white, Color.black, Mathf.InverseLerp(penaltyMin, penaltyMax, n.movementPenalty));
-                    Gizmos.color = (n.walkable) ? Gizmos.color : Color.red;
+                    //Gizmos.color = Color.Lerp(Color.white, Color.black, Mathf.InverseLerp(penaltyMin, penaltyMax, n.movementPenalty));
+                    //Gizmos.color = (n.walkable) ? Gizmos.color : Color.red;
 
                     Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter));
                 }

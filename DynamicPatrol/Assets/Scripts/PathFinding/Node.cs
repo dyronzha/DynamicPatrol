@@ -27,35 +27,33 @@ namespace PathFinder
             get { return areaID; }
         }
 
-        string allAreaName = string.Empty;
-        string unwalkableAreaName = string.Empty;
-        public string AllAreaName{
+        public bool canChoose = true;
+        string colliderName;
+        public string ColliderName { get { return colliderName; } }
+        string lastAreaName = string.Empty;
+        public string LastAreaName{
             get {
-                return allAreaName;
-            }
-        }
-        public int borderNum = 0;
-
-        //5 1 6
-        //3   4
-        //7 2 8
-        Dictionary<string, int> AreaInfo = new Dictionary<string, int>();  //1234 上下左右
-        public Dictionary<string, int> AllAreaInfos
-        {
-            get
-            {
-                return AreaInfo;
+                return lastAreaName;
             }
         }
 
 
-        public int AreaNum{
-            get { return AreaInfo.Count; }
-        }
-        public int AreaNumWithBorder {
-            get { return AreaInfo.Count + borderNum; }
-        }
-        public int dirr = 0; //方便顯示位置顏色用，之後可以刪掉
+        //23 11 24
+        //12    13
+        //26 14 27
+        int direction = 0;
+        public int Direction { get { return direction; } }
+        public string locNmae;
+
+        //Dictionary<string, int> AreaInfo = new Dictionary<string, int>();
+        //public Dictionary<string, int> AllAreaInfos
+        //{
+        //    get
+        //    {
+        //        return AreaInfo;
+        //    }
+        //}
+
 
         //public Node(bool _walkable, Vector3 _worldPos, int _gridX, int _gridY, int _penalty)
         //{
@@ -65,15 +63,15 @@ namespace PathFinder
         //    gridY = _gridY;
         //    movementPenalty = _penalty;
         //}
-        public Node(bool _walkable, Vector3 _worldPos, int _gridX, int _gridY, int _penalty, string _name,  int _areaID)
+        public Node(bool _walkable, Vector3 _worldPos, int _gridX, int _gridY, int _penalty, string _name)
         {
             walkable = _walkable;
             worldPosition = _worldPos;
             gridX = _gridX;
             gridY = _gridY;
             movementPenalty = _penalty;
-            allAreaName = _name;
-            areaID = _areaID;
+            colliderName= _name;
+            locNmae = gridX + "," + gridY;
         }
 
         public int fCost
@@ -115,85 +113,77 @@ namespace PathFinder
             }
         }
 
-        public void AddArea(string id, int dir, bool _nearBorder) {
-            if (!AreaInfo.ContainsKey(id))
+        public void AddArea(string name, int dir, PatrolManager patrolManager) {
+            if (lastAreaName.Length == 0)
             {
-                if (AreaInfo.Count == 0) allAreaName = id;
-                else allAreaName += id;
-                AreaInfo.Add(id, dir);
-                dirr = dir;
-                nearBorder = (_nearBorder || nearBorder);
-                //Debug.Log(gridX + "," + gridY + "  加入 " + id + " 總共有 " + allAreaName);
+                //未有區域，新增
+                direction = dir;
+                lastAreaName = name;
+                patrolManager.FindAreaInDic(name).AddSpreadGrid(gridX, gridY, dir);
             }
-            //else Debug.Log("已有 " + id + " 區域");
-        }
-        public void AddAreas(string allarea, Dictionary<string, int> newAreas)
-        {
-            if (allAreaName.Contains(allarea)) return; //確定自己有包含新區域
-            foreach (KeyValuePair<string, int> item in newAreas)
-            {
-                Debug.Log(gridX + "," + gridY +  "  確認 " + item.Key + "有沒有");
-                if (!AreaInfo.ContainsKey(item.Key))
+            else {
+                //一個以上，且名字不同，互相覆蓋，移除
+                if (lastAreaName.CompareTo(name) != 0)
                 {
-                    Debug.Log("新增 " + item.Key);
-                    int dir = dirr;
-                    if (walkable)
-                    {
-                        dir = ((item.Value - gridY) > 0) ? 2 : 1;
-                        AreaInfo.Add(item.Key, dir);
-                        allAreaName += item.Key;
+                    patrolManager.FindAreaInDic(lastAreaName).RemoveSpreadGrid(gridX, gridY);
+                    direction = 0;
+                    lastAreaName = string.Empty;
+                    canChoose = false;
+                }
+                //一個以上，名字相同，但同時有上下左右，互相覆蓋，移除
+                else
+                {
+                    if (dir < 20 && direction < 20) {
+                        patrolManager.FindAreaInDic(lastAreaName).RemoveSpreadGrid(gridX, gridY);
+                        direction = 0;
+                        lastAreaName = string.Empty;
+                        canChoose = false;
                     }
-                    dirr = dir;
+                }
+
+            }
+        }
+
+        public void OldAddArea(string name, int dir, bool _nearBorder, PatrolManager patrolManager) {
+            if (lastAreaName.Length > 0)
+            {
+                if (nearBorder && _nearBorder)
+                {
+                    
+                    direction += dir;
+                    patrolManager.FindAreaInDic(name).UpdateSpreadGrid(gridX, gridY, direction);
+                    Debug.Log(gridX + "," + gridY + "  corner " + direction);
                 }
                 else {
-                    Debug.Log("已有 " + item.Key);
-                }
+                    if (name.CompareTo(lastAreaName) == 0)
+                    {
+                        direction += dir;
+                        patrolManager.FindAreaInDic(lastAreaName).UpdateSpreadGrid(gridX, gridY, direction);
+                    }
+                    else {
+                        patrolManager.FindAreaInDic(lastAreaName).RemoveSpreadGrid(gridX, gridY);
+                        lastAreaName += ("," + name);
+                        direction = 0;
+                        canChoose = false;
+                    }
+
+                } 
             }
-           
+            else {
+                lastAreaName = name;
+                direction = dir;
+                nearBorder = _nearBorder;
+                patrolManager.FindAreaInDic(name).AddSpreadGrid(gridX, gridY, dir);
+            }
+            
         }
 
-        public void CheckAddAreas(ref List<string> allAreas) {
-            foreach (KeyValuePair<string, int> item in AreaInfo)
-            {
-                if (!allAreas.Contains(item.Key))
-                {
-                    allAreas.Add(item.Key);
-                }
-            }
+        public void RemoveArea(PatrolManager patrolManager) {
+            patrolManager.FindAreaInDic(lastAreaName).RemoveSpreadGrid(gridX, gridY);
+            direction = 0;
+            lastAreaName = string.Empty;
         }
 
-        //public void CheckRemoveAreas(Dictionary<string, int> upAreas, ref Dictionary<string, int> allAreas, ref string lastArea) {
-        //    foreach (KeyValuePair<string, int> item in upAreas) {
-        //        Debug.Log("與現在的比 " + item.Key);
-        //    }
-        //    foreach (KeyValuePair<string, int> item in AreaInfo)
-        //    {
-        //        Debug.Log(gridX + "," + gridY + "有 " + item.Key + " 比較 " + lastArea);
-        //        //指判斷刪除橫向的，且沒有的區域
-        //        if (item.Value > 2 && !upAreas.ContainsKey(item.Key) && allAreas.ContainsKey(item.Key))
-        //        {
-        //            allAreas.Remove(item.Key);
-
-        //            Debug.Log("移除在" + lastArea.IndexOf(item.Key) + "的" + item.Key);
-        //            lastArea = lastArea.Remove(lastArea.IndexOf(item.Key), item.Key.Length);
-        //            Debug.Log("  剩下" + lastArea + "。");
-        //        }
-        //    }
-        //    if (!walkable)
-        //    {
-        //        Debug.Log(gridX + "," + gridY + "有 " + colliderName + " 比較 " + lastArea);
-        //        //指判斷刪除橫向的，且沒有的區域
-        //        if (!upAreas.ContainsKey(colliderName) && allAreas.ContainsKey(colliderName))
-        //        {
-        //            allAreas.Remove(colliderName);
-
-        //            Debug.Log("移除在" + lastArea.IndexOf(colliderName) + "的" + colliderName);
-        //            lastArea = lastArea.Remove(lastArea.IndexOf(colliderName), colliderName.Length);
-        //            Debug.Log("  剩下" + lastArea + "。");
-        //        }
-        //    }
-
-        //}
     }
 
 }

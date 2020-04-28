@@ -5,8 +5,9 @@ using UnityEngine;
 public class PatrolManager : MonoBehaviour
 {
     int ID = 0;
-    Dictionary<string, int> areaDic = new Dictionary<string, int>();   //碰撞名和地區的字典
-    Dictionary<string, PatrolArea> existAreas = new Dictionary<string, PatrolArea>();  //已知地區和編號的字典
+    List<string> areaNames = new List<string>();
+    Dictionary<string, PatrolArea> areaDic = new Dictionary<string, PatrolArea>();   //碰撞名和地區的字典
+    
 
     // Start is called before the first frame update
     void Start()
@@ -20,52 +21,21 @@ public class PatrolManager : MonoBehaviour
         
     }
 
-    public int CheckExistArea(string name)
+    public void CheckExistArea(string name)
     {
-        if (name.Length <= 0) return -1;
-        if (!areaDic.ContainsKey(name))
+        if (name.Length > 0 && !areaDic.ContainsKey(name))
         {
-            areaDic.Add(name, ID);
+            areaNames.Add(name);
             PatrolArea area = new PatrolArea(name);
-            //string id = char.ToString(System.Convert.ToChar(ID));
-            //existAreas.Add(id, area);
-            ID++;
-            return ID-1;
+            areaDic.Add(name, area);
         }
-        else
-        {
+
+    }
+    public PatrolArea FindAreaInDic(string name) {
+        if (areaDic.ContainsKey(name)) {
             return areaDic[name];
         }
-    }
-
-    public string AddPatrolArea(string name) {
-
-        if (!areaDic.ContainsKey(name))
-        {
-            
-            areaDic.Add(name, ID);
-            PatrolArea area = new PatrolArea(name);
-            string id = char.ToString(System.Convert.ToChar(ID));
-            existAreas.Add(id, area);
-            //Debug.Log("convert  " + name + " to " + id);
-            ID++;
-            return id;
-
-        }
-        else {
-            return char.ToString(System.Convert.ToChar(areaDic[name]));
-            //if (existAreas.ContainsKey(ID))
-            //{
-            //    PatrolArea area = new PatrolArea();
-            //}
-            //else
-            //{
-            //    //existAreas[id];
-            //}
-        }
-
-
-        
+        return null;
     }
 
 }

@@ -24,17 +24,39 @@ public class PatrolArea
         hasChoosen[id] = value;
     }
 
-    List<Node> upPoints = new List<Node>();
-    List<Node> downPoints = new List<Node>();
-    List<Node> leftPoints = new List<Node>();
-    List<Node> rightPoints = new List<Node>();
-
-    int num = 0;
-
-    // Start is called before the first frame update
-    void Start()
-    {
+    public class SpreadGrid {
+        bool choosen;
+        bool stopSpread;
+        public int x;
+        public int y;
+        public int direction;
+        public SpreadGrid(int _x, int _y, int _dir) {
+            x = _x;
+            y = _y;
+            direction = _dir;
+            stopSpread = false;
+            stopSpread = false;
+        }
         
+    }
+
+    Dictionary<string, SpreadGrid>spreadGrids = new Dictionary<string, SpreadGrid>();
+    public void AddSpreadGrid( int _x, int _y, int _dir) {
+        string key = _x.ToString() + "," + _y.ToString();
+        spreadGrids.Add(key ,new SpreadGrid(_x, _y, _dir));
+    }
+    public void UpdateSpreadGrid(int _x, int _y, int _dir) {
+        string loc = _x.ToString() + "," + _y.ToString();
+        if (spreadGrids.ContainsKey(loc)) {
+            spreadGrids[loc].direction = _dir;
+        }
+    }
+    public void RemoveSpreadGrid(int _x, int _y) {
+        string loc = _x.ToString() + "," + _y.ToString();
+        if (spreadGrids.ContainsKey(loc))
+        {
+            spreadGrids.Remove(loc);
+        }
     }
 
     // Update is called once per frame
