@@ -1780,6 +1780,7 @@ MonoBehaviour:
   obstacleProximityPenalty: 100
   blurSize: 3
   chooseOffset: 0
+  drawType: 2
 --- !u!4 &1948129413
 Transform:
   m_ObjectHideFlags: 0

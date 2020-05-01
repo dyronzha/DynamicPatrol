@@ -22,9 +22,12 @@ namespace PathFinder
         LayerMask walkableMask;
 
         Node[,] grid;
+        public Node[,] Grid { get { return grid; } }
 
         float nodeDiameter;
         int gridSizeX, gridSizeY;
+        public int GridSizeX { get { return gridSizeX; } }
+        public int GridSizeY { get { return gridSizeY; } }
 
         int penaltyMin = int.MaxValue;
         int penaltyMax = int.MinValue;
@@ -35,10 +38,11 @@ namespace PathFinder
 
         PatrolManager patrolManager;
 
-        public struct Area { 
-            public string name;
-            public int y;
+        public enum DrawType { 
+            Weight, BeforeSpread, AfterSpread
         }
+        public DrawType drawType; 
+        
         void Awake()
         {
             patrolManager = transform.GetComponent<PatrolManager>();
@@ -52,6 +56,7 @@ namespace PathFinder
                 walkableRegionsDictionary.Add((int)Mathf.Log(region.terrainMask.value, 2), region.terrainPenalty);
             }
 
+            patrolManager.InitGridSize(gridSizeX, gridSizeY);
             patrolManager.CheckExistArea("Border");
             CreateGrid();
 
@@ -60,6 +65,10 @@ namespace PathFinder
 
             chooseValue = Mathf.FloorToInt(obstacleProximityPenalty / (blurSize*blurSize)) + chooseOffset;
 
+            
+        }
+        public void Start()
+        {
             
         }
 
@@ -460,6 +469,11 @@ namespace PathFinder
             }
         }
 
+        private void Update()
+        {
+            
+        }
+
         void OnDrawGizmos()
         {
             Gizmos.DrawWireCube(transform.position, new Vector3(gridWorldSize.x, 1, gridWorldSize.y));
@@ -467,26 +481,37 @@ namespace PathFinder
             {
                 foreach (Node n in grid)
                 {
-                    if (!n.walkable)
+                    if (drawType == DrawType.Weight)
                     {
-                        Gizmos.color = Color.black;
-                        Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter));
-                        continue;
+                        Gizmos.color = Color.Lerp(Color.white, Color.black, Mathf.InverseLerp(penaltyMin, penaltyMax, n.movementPenalty));
+                        Gizmos.color = (n.walkable) ? Gizmos.color : Color.red;
                     }
-                    Gizmos.color = Color.white;
-                    //Debug.Log(n.locNmae + "  " +  n.Direction);
-                    if (n.Direction == 11) Gizmos.color = new Color(1, 0, 0);
-                    else if (n.Direction == 12) Gizmos.color = new Color(0, 0, 1);
-                    else if (n.Direction == 13) Gizmos.color = new Color(0, 1, 0);
-                    else if (n.Direction == 14) Gizmos.color = new Color(0.5f, 0, 0);
-                    else if (n.Direction == 23) Gizmos.color = new Color(1, 0, 1);
-                    else if (n.Direction == 24) Gizmos.color = new Color(1, 1, 0);
-                    else if (n.Direction == 26) Gizmos.color = new Color(0.5f, 0, 0.5f);
-                    else if (n.Direction == 27) Gizmos.color = new Color(0.5f, 0.5f, 0f);
-
-                    //Gizmos.color = Color.Lerp(Color.white, Color.black, Mathf.InverseLerp(penaltyMin, penaltyMax, n.movementPenalty));
-                    //Gizmos.color = (n.walkable) ? Gizmos.color : Color.red;
-
+                    else if (drawType == DrawType.BeforeSpread)
+                    {
+                        if (!n.walkable)
+                        {
+                            Gizmos.color = Color.black;
+                            //Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter));
+                            continue;
+                        }
+                        Gizmos.color = Color.white;
+                        //Debug.Log(n.locNmae + "  " +  n.Direction);
+                        if (n.Direction == 11) Gizmos.color = new Color(1, 0, 0);
+                        else if (n.Direction == 12) Gizmos.color = new Color(0, 0, 1);
+                        else if (n.Direction == 13) Gizmos.color = new Color(0, 1, 0);
+                        else if (n.Direction == 14) Gizmos.color = new Color(0.5f, 0, 0);
+                        else if (n.Direction == 23) Gizmos.color = new Color(1, 0, 1);
+                        else if (n.Direction == 24) Gizmos.color = new Color(1, 1, 0);
+                        else if (n.Direction == 26) Gizmos.color = new Color(0.5f, 0, 0.5f);
+                        else if (n.Direction == 27) Gizmos.color = new Color(0.5f, 0.5f, 0f);
+                    }
+                    else if (drawType == DrawType.AfterSpread)
+                    {
+                        Gizmos.color = Color.white;
+                        if (!n.walkable) Gizmos.color = Color.black;
+                        if(patrolManager.spreadGrid[n.gridX, n.gridY].current) Gizmos.color = Color.gray;
+                        if (patrolManager.spreadGrid[n.gridX, n.gridY].choosen) Gizmos.color = Color.cyan;
+                    }
                     Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter));
                 }
             }
