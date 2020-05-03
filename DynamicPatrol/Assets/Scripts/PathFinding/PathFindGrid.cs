@@ -16,6 +16,8 @@ namespace PathFinder
         public int obstacleProximityPenalty = 10;
         public int blurSize = 3;
         public int chooseOffset;
+        [Range(0.0f,1.0f)]
+        public float choosenRate = .0f;
         int chooseValue;
         
         Dictionary<int, int> walkableRegionsDictionary = new Dictionary<int, int>();
@@ -180,9 +182,10 @@ namespace PathFinder
                 //    }
                 //}
                 if (grid[0, y].walkable) {
-                    if (y == 0) grid[0, y].AddArea("Border", 24, patrolManager);
-                    else if (y == gridSizeY - 1) grid[0, y].AddArea("Border", 27, patrolManager);
-                    else grid[0, y].AddArea("Border", 13, patrolManager);
+                    if(y > 0 && y < gridSizeY - 1) grid[0, y].AddArea("Border", 13, patrolManager);
+                    //if (y == 0) grid[0, y].AddArea("Border", 24, patrolManager);
+                    //else if (y == gridSizeY - 1) grid[0, y].AddArea("Border", 27, patrolManager);
+                    //else grid[0, y].AddArea("Border", 13, patrolManager);
                 }
 
                 //最左邊處理
@@ -275,9 +278,10 @@ namespace PathFinder
                             }
                         }
                         else {
-                            if (y == 0) grid[x, y].AddArea("Border", 23, patrolManager);
-                            else if (y == gridSizeY - 1) grid[x, y].AddArea("Border", 26, patrolManager);
-                            else grid[x, y].AddArea("Border", 12, patrolManager);
+                            if(y > 0 && y < gridSizeY - 1) grid[x, y].AddArea("Border", 12, patrolManager);
+                            //if (y == 0) grid[x, y].AddArea("Border", 23, patrolManager);
+                            //else if (y == gridSizeY - 1) grid[x, y].AddArea("Border", 26, patrolManager);
+                            //else grid[x, y].AddArea("Border", 12, patrolManager);
                         } 
                     }
                 }
@@ -508,12 +512,15 @@ namespace PathFinder
                     else if (drawType == DrawType.AfterSpread)
                     {
                         Gizmos.color = Color.white;
-                        if (!n.walkable) Gizmos.color = Color.black;
+                        if (!n.walkable) Gizmos.color = Color.red;
                         if(patrolManager.spreadGrid[n.gridX, n.gridY].current) Gizmos.color = Color.gray;
-                        if (patrolManager.spreadGrid[n.gridX, n.gridY].choosen) Gizmos.color = Color.cyan;
+                        //if (patrolManager.spreadGrid[n.gridX, n.gridY].close) Gizmos.color = Color.black;
+                        float a = Mathf.Lerp(.0f, 1.0f, Mathf.InverseLerp(0, patrolManager.maxChoosenWeight, patrolManager.spreadGrid[n.gridX, n.gridY].choosenWeight));
+                        if (patrolManager.choosenNodeDic.ContainsKey(new Vector2Int(n.gridX, n.gridY)) && a> choosenRate) Gizmos.color = new Color(0,1,1,a);
                     }
                     Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter));
                 }
+               
             }
         }
 

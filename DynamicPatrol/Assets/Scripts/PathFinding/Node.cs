@@ -129,6 +129,18 @@ namespace PathFinder
                     direction = 0;
                     lastAreaName = string.Empty;
                     canChoose = false;
+
+                    Vector2Int pos = new Vector2Int(gridX, gridY);
+                    if (!patrolManager.choosenNodeDic.ContainsKey(pos)) {
+                        PatrolManager.SpreadNode node = new PatrolManager.SpreadNode();
+                        if(name.CompareTo("Border") == 0 || lastAreaName.CompareTo("Border") == 0) node.choosenWeight = 10;
+                        else node.choosenWeight = 80;
+                        node.choosen = true;
+                        node.choseNum++;
+                        patrolManager.choosenNode.Add(node);
+                        patrolManager.choosenNodeDic.Add(pos, node);
+                    }
+                    
                 }
                 //一個以上，名字相同，但同時有上下左右，互相覆蓋，移除
                 else
