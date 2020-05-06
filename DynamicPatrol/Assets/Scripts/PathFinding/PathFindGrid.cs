@@ -16,8 +16,8 @@ namespace PathFinder
         public int obstacleProximityPenalty = 10;
         public int blurSize = 3;
         public int chooseOffset;
-        [Range(0.0f,1.0f)]
-        public float choosenRate = .0f;
+        
+        
         int chooseValue;
         
         Dictionary<int, int> walkableRegionsDictionary = new Dictionary<int, int>();
@@ -512,11 +512,15 @@ namespace PathFinder
                     else if (drawType == DrawType.AfterSpread)
                     {
                         Gizmos.color = Color.white;
-                        if (!n.walkable) Gizmos.color = Color.red;
+                        if (!n.walkable) Gizmos.color = Color.black;
                         if(patrolManager.spreadGrid[n.gridX, n.gridY].current) Gizmos.color = Color.gray;
                         //if (patrolManager.spreadGrid[n.gridX, n.gridY].close) Gizmos.color = Color.black;
-                        float a = Mathf.Lerp(.0f, 1.0f, Mathf.InverseLerp(0, patrolManager.maxChoosenWeight, patrolManager.spreadGrid[n.gridX, n.gridY].choosenWeight));
-                        if (patrolManager.choosenNodeDic.ContainsKey(new Vector2Int(n.gridX, n.gridY)) && a> choosenRate) Gizmos.color = new Color(0,1,1,a);
+                        float a = Mathf.InverseLerp(0, patrolManager.maxChoosenWeight, patrolManager.spreadGrid[n.gridX, n.gridY].choosenWeight);//Mathf.Lerp(.0f, 1.0f, );
+                        if (patrolManager.choosenNodeDic.ContainsKey(new Vector2Int(n.gridX, n.gridY)) && a> patrolManager.choosenRate) Gizmos.color = new Color(0,1,1,a);
+                        if (patrolManager.confirmGraphNodeDic.ContainsKey(new Vector2Int(n.gridX, n.gridY))) { 
+                            if(patrolManager.confirmGraphNodeDic[new Vector2Int(n.gridX, n.gridY)].crossNode) Gizmos.color = new Color(1,0,1);
+                            else Gizmos.color = Color.red;
+                        } 
                     }
                     Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter));
                 }

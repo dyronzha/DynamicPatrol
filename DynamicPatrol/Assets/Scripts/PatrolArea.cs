@@ -108,7 +108,7 @@ public class PatrolArea
         string key = _x.ToString() + "," + _y.ToString();
         //spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir));
         if (name.CompareTo("Border") == 0) spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir));
-        else spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir, 50));
+        else spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir, patrolManager.NotBorderWeight));
         spreadGridNmae.Add(key);
         
     }
@@ -117,7 +117,7 @@ public class PatrolArea
         string key = _x.ToString() + "," + _y.ToString();
         //spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir));
         if (name.CompareTo("Border") == 0) spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir));
-        else spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir, 50));
+        else spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir, patrolManager.NotBorderWeight));
         spreadGridNmae.Add(key);
     }
     public void AddSpreadGridTilt(int _x, int _y, Vector2Int _dir, int _weight)
