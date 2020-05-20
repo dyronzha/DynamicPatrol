@@ -28,7 +28,7 @@ namespace PathFinder
         }
 
         public bool canChoose = true;
-        string colliderName;
+        string colliderName = string.Empty;
         public string ColliderName { get { return colliderName; } }
         string lastAreaName = string.Empty;
         public string LastAreaName{
@@ -37,6 +37,8 @@ namespace PathFinder
             }
         }
 
+        public bool isMultiArea = false;
+        public List<string> multiArea = new List<string>();
 
         //23 11 24
         //12    13
@@ -128,28 +130,60 @@ namespace PathFinder
                 {
 
                     Vector2Int pos = new Vector2Int(gridX, gridY);
-                    if (!patrolManager.choosenNodeDic.ContainsKey(pos))
+
+                    //判斷不同障礙物的方向是不是一致，代表障礙物重疊
+                    if ((direction == 11 && (dir == 23 || dir == 24)) || (direction == 12 && (dir == 23 || dir == 26)) || (direction == 13 && (dir == 24 || dir == 27)) || (direction == 14 && (dir == 26 || dir == 27)))
                     {
-                        PatrolManager.SpreadNode node = new PatrolManager.SpreadNode();
-                        //Debug.Log(gridX + "," + gridY + "  " + name + "  + " + lastAreaName);
-                        if (name.CompareTo("Border") == 0 || lastAreaName.CompareTo("Border") == 0) node.choosenWeight = patrolManager.NotBorderWeight + patrolManager.PerSpreadWeight*2;
-                        else node.choosenWeight = patrolManager.NotBorderWeight * 2 + patrolManager.PerSpreadWeight*2;
-                        node.choosen = true;
-                        node.choseNum++;
-                        node.pos = pos;
-                        patrolManager.choosenNode.Add(node);
-                        patrolManager.choosenNodeDic.Add(pos, node);
+
+                    }
+                    else {
+                        //不重疊記為碰撞，選起來，並移除區域的礦散點
+                        if (!patrolManager.choosenNodeDic.ContainsKey(pos))
+                        {
+                            PatrolManager.SpreadNode node = new PatrolManager.SpreadNode();
+                            //Debug.Log(gridX + "," + gridY + "  " + name + "  + " + lastAreaName);
+                            if (name.CompareTo("Border") == 0 || lastAreaName.CompareTo("Border") == 0) node.choosenWeight = patrolManager.NotBorderWeight + patrolManager.PerSpreadWeight * 2;
+                            else node.choosenWeight = patrolManager.NotBorderWeight * 2 + patrolManager.PerSpreadWeight * 2;
+                            node.choosen = true;
+                            node.choseNum++;
+                            node.pos = pos;
+                            int colDir = dir + direction;
+                            patrolManager.choosenNode.Add(node);
+                            patrolManager.choosenNodeDic.Add(pos, node);
+
+                            //同方向斜邊需互撞要新增tiltSpread
+                            if (colDir == 47 ) {
+                                node.dir = new Vector2Int(0, 1);
+                                patrolManager.tiltSpread.Add(node);
+                            }
+                            else if (colDir == 53) {
+                                node.dir = new Vector2Int(0, -1);
+                                patrolManager.tiltSpread.Add(node);
+                            }
+                            else if (colDir == 49) {
+                                node.dir = new Vector2Int(-1, 0);
+                                patrolManager.tiltSpread.Add(node);
+                            }
+                            else if (colDir == 51) {
+                                node.dir = new Vector2Int(1, 0);
+                                patrolManager.tiltSpread.Add(node);
+                            }
+                        }
+
+                        //patrolManager.FindAreaInDic(lastAreaName).RemoveSpreadGrid(gridX, gridY);
+                        direction = 0;
+                        lastAreaName = string.Empty;
+                        canChoose = false;
                     }
 
-                    patrolManager.FindAreaInDic(lastAreaName).RemoveSpreadGrid(gridX, gridY);
-                    direction = 0;
-                    lastAreaName = string.Empty;
-                    canChoose = false;
+                   
                 }
                 //一個以上，名字相同，但同時有上下左右，互相覆蓋，移除
+                //斜的障礙物會出現的狀況
                 else
                 {
-                    if (dir < 20 && direction < 20) {
+                    if (dir < 20 && direction < 20)
+                    {
                         patrolManager.FindAreaInDic(lastAreaName).RemoveSpreadGrid(gridX, gridY);
                         direction = 0;
                         lastAreaName = string.Empty;

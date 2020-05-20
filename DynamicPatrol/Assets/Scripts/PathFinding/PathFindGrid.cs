@@ -40,8 +40,9 @@ namespace PathFinder
 
         PatrolManager patrolManager;
 
+
         public enum DrawType { 
-            Weight, BeforeSpread, AfterSpread
+            Weight, BeforeSpread, AfterSpread, GraphConnect
         }
         public DrawType drawType; 
         
@@ -99,7 +100,7 @@ namespace PathFinder
                     if (hits != null && hits.Length > 0)
                     {
                         walkable = false;
-                        areaNmae = (hits[0].transform.parent == null)?hits[0].transform.name: hits[0].transform.parent.name;
+                        areaNmae = hits[0].transform.name;//(hits[0].transform.parent == null)?hits[0].transform.name: hits[0].transform.parent.name;
                         if (hits.Length == 0 && hits[0].tag == "disappearBarrier")
                         {
                             disappearBarrier.Add(new Vector2(x, y));
@@ -263,7 +264,7 @@ namespace PathFinder
                     //    //}
                     //}
 
-                    if (grid[x, y].walkable) {
+                    if (grid[x, y].walkable && grid[x, y].canChoose) {
                         //左邊有障礙
                         if (!grid[x - 1, y].walkable)
                         {
@@ -289,7 +290,7 @@ namespace PathFinder
 
             for (int x = 0; x < gridSizeX; x++)
             {
-                if (grid[x, 0].walkable)
+                if (grid[x, 0].walkable && grid[x, 0].canChoose)
                 {
                     if(x > 0 && x < gridSizeX-1) grid[x, 0].AddArea("Border", 11, patrolManager);
                     if (!grid[x, 1].walkable)
@@ -339,7 +340,7 @@ namespace PathFinder
                         penaltiesVerticalPass[x, y] = penaltiesVerticalPass[x, y - 1] - penaltiesHorizontalPass[x, removeIndex] + penaltiesHorizontalPass[x, addIndex];
                     }
 
-                    if (grid[x, y].walkable)
+                    if (grid[x, y].walkable && grid[x, y].canChoose)
                     {
                         //下面有障礙
                         if (!grid[x, y - 1].walkable)
@@ -405,6 +406,10 @@ namespace PathFinder
 
         }
 
+        public string GetColliderName(Vector2Int pos) {
+            return grid[pos.x, pos.y].ColliderName;
+        }
+
         public void ClearExtendPenalty()
         {
             for (int x = 0; x < gridSizeX; x++)
@@ -465,6 +470,10 @@ namespace PathFinder
             else return true;
         }
 
+        public Vector3 GetNodePos(int x, int y) {
+            return grid[x, y].worldPosition;
+        }
+
         public void DisableCollider()
         {
             foreach (Vector2 xy in disappearBarrier)
@@ -513,19 +522,74 @@ namespace PathFinder
                     {
                         Gizmos.color = Color.white;
                         if (!n.walkable) Gizmos.color = Color.black;
-                        if(patrolManager.spreadGrid[n.gridX, n.gridY].current) Gizmos.color = Color.gray;
+                        if (patrolManager.spreadGrid[n.gridX, n.gridY].current) Gizmos.color = Color.gray;
                         //if (patrolManager.spreadGrid[n.gridX, n.gridY].close) Gizmos.color = Color.black;
                         float a = Mathf.InverseLerp(0, patrolManager.maxChoosenWeight, patrolManager.spreadGrid[n.gridX, n.gridY].choosenWeight);//Mathf.Lerp(.0f, 1.0f, );
-                        if (patrolManager.choosenNodeDic.ContainsKey(new Vector2Int(n.gridX, n.gridY)) && a> patrolManager.choosenRate) Gizmos.color = new Color(0,1,1,a);
-                        if (patrolManager.confirmGraphNodeDic.ContainsKey(new Vector2Int(n.gridX, n.gridY))) { 
-                            if(patrolManager.confirmGraphNodeDic[new Vector2Int(n.gridX, n.gridY)].crossNode) Gizmos.color = new Color(1,0,1);
+                        if (patrolManager.choosenNodeDic.ContainsKey(new Vector2Int(n.gridX, n.gridY)) && a > patrolManager.choosenRate) Gizmos.color = new Color(0, 1, 1, a);
+                        if (patrolManager.confirmGraphNodeDic.ContainsKey(new Vector2Int(n.gridX, n.gridY)))
+                        {
+                            if (patrolManager.confirmGraphNodeDic[new Vector2Int(n.gridX, n.gridY)].crossNode) Gizmos.color = new Color(1, 0, 1);
                             else Gizmos.color = Color.red;
-                        } 
+                        }
                     }
+                    else if (drawType == DrawType.GraphConnect) {
+                        Gizmos.color = Color.white;
+                        if (!n.walkable) Gizmos.color = Color.black;
+                        if (patrolManager.spreadGrid[n.gridX, n.gridY].choosen) Gizmos.color = Color.gray;
+                        if (patrolManager.choosenNodeDic.ContainsKey(new Vector2Int(n.gridX, n.gridY))) {
+
+                            if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count <= 0)
+                            {
+                                Gizmos.color = Color.blue;
+                            }
+                            else {
+                                Gizmos.color = new Color(0, 1, 1);
+                            }
+                            if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].crossNode) Gizmos.color = new Color(1, 0, 1);
+                            else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].turnNode) Gizmos.color = Color.yellow;
+                            else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].endNode) Gizmos.color = Color.green;
+                            //else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count < 2) Gizmos.color = Color.green;
+                        }
+
+                        //if (patrolManager.confirmGraphNodeDic.ContainsKey(new Vector2Int(n.gridX, n.gridY)))
+                        //{
+                        //    Gizmos.color = Color.red;
+                        //}
+                        if (patrolManager.connectNeighbor!= null && n.gridX == patrolManager.connectNeighbor.pos.x && n.gridY == patrolManager.connectNeighbor.pos.y) Gizmos.color = Color.gray;
+                    }
+
                     Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter));
                 }
                
             }
+
+            if (patrolManager != null) {
+                float height = 3;
+                for (int i = 0; i < patrolManager.ConfirmGraph.Count; i++)
+                {
+                    Gizmos.color = Color.red;
+                    PatrolManager.PatrolGraphNode node = patrolManager.ConfirmGraph[i];
+                    Vector3 from = new Vector3(node.pos.x, height, node.pos.z);
+                    for (int j = 0; j < node.besideNodes.Count; j++)
+                    {
+                        Vector3 to = new Vector3(node.besideNodes[j].node.pos.x, height, node.besideNodes[j].node.pos.z);
+                        Gizmos.DrawLine(from, to);
+                    }
+                    //height += 0.1f;
+                }
+               
+                height += 1.0f;
+                for (int i = 0; i < patrolManager.patrolPathes.Count; i++) {
+                    Gizmos.color = Color.cyan;
+                    for (int j = 0; j < patrolManager.patrolPathes[i].lookPoints.Length-1; j++)
+                    {
+                        Vector3 from = new Vector3(patrolManager.patrolPathes[i].lookPoints[j].x, height, patrolManager.patrolPathes[i].lookPoints[j].z);
+                        Vector3 to = new Vector3(patrolManager.patrolPathes[i].lookPoints[j+1].x, height, patrolManager.patrolPathes[i].lookPoints[j+1].z);
+                        Gizmos.DrawLine(from, to);
+                    }
+                }
+            }
+           
         }
 
         [System.Serializable]

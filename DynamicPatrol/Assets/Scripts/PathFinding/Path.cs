@@ -73,6 +73,23 @@ namespace PathFinder {
                 previousPoint = turnBoundaryPoint;
             }
         }
+        public Path(List<Vector3> waypoints, float turnDst) //float stoppingDst
+        {
+            lookPoints = new Vector3[waypoints.Count];
+            turnBoundaries = new Line[lookPoints.Length];
+            finishLineIndex = turnBoundaries.Length - 1;
+
+            Vector2 previousPoint = V3ToV2(waypoints[0]);
+            for (int i = 1; i < waypoints.Count; i++)
+            {
+                lookPoints[i] = new Vector3(waypoints[i].x, 0.0f, waypoints[i].z);
+                Vector2 currentPoint = V3ToV2(lookPoints[i]);
+                Vector2 dirToCurrentPoint = (currentPoint - previousPoint).normalized;
+                Vector2 turnBoundaryPoint = (i == finishLineIndex) ? currentPoint : currentPoint - dirToCurrentPoint * turnDst;
+                turnBoundaries[i] = new Line(turnBoundaryPoint, previousPoint - dirToCurrentPoint * turnDst);
+                previousPoint = turnBoundaryPoint;
+            }
+        }
 
         //public Path(BloodBond.PatrolPoint[] waypoints, float turnDst) //float stoppingDst
         //{
@@ -90,7 +107,7 @@ namespace PathFinder {
         //        lookForwards[0] = waypoints[0].transform.forward;
         //        lookPoints[0] = waypoints[0].transform.position;
         //    }
-            
+
 
         //    for (int i = 1; i < waypoints.Length; i++)
         //    {
