@@ -142,10 +142,7 @@ namespace PathFinder
                         {
                             PatrolManager.SpreadNode node = new PatrolManager.SpreadNode();
                             //Debug.Log(gridX + "," + gridY + "  " + name + "  + " + lastAreaName);
-                            if (name.CompareTo("Border") == 0 || lastAreaName.CompareTo("Border") == 0) node.choosenWeight = patrolManager.NotBorderWeight + patrolManager.PerSpreadWeight * 2;
-                            else node.choosenWeight = patrolManager.NotBorderWeight * 2 + patrolManager.PerSpreadWeight * 2;
                             node.choosen = true;
-                            node.choseNum++;
                             node.pos = pos;
                             int colDir = dir + direction;
                             patrolManager.choosenNode.Add(node);
