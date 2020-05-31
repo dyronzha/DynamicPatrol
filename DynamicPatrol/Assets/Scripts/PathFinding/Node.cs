@@ -116,11 +116,13 @@ namespace PathFinder
         }
 
         public void AddArea(string name, int dir, PatrolManager patrolManager) {
+            if (gridX == 36 && gridY == 70)Debug.Log(lastAreaName + "  addddddddddd  " + name);
             if (lastAreaName.Length == 0)
             {
                 //未有區域，新增
                 direction = dir;
                 lastAreaName = name;
+                if(gridX == 36 && gridY == 70)Debug.Log(lastAreaName + "          " +  gridX + "," + gridY + "    " + name);
                 patrolManager.FindAreaInDic(name).AddSpreadGrid(gridX, gridY, dir);
 
             }
@@ -167,7 +169,7 @@ namespace PathFinder
                             }
                         }
 
-                        //patrolManager.FindAreaInDic(lastAreaName).RemoveSpreadGrid(gridX, gridY);
+                        patrolManager.FindAreaInDic(lastAreaName).RemoveSpreadGrid(gridX, gridY);
                         direction = 0;
                         lastAreaName = string.Empty;
                         canChoose = false;

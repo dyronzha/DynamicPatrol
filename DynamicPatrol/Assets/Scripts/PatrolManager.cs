@@ -19,7 +19,7 @@ public class PatrolManager : MonoBehaviour
     public float sameAreaDisRate = 0.3f;
     [Range(0.0f, 1.0f)]
     public float choosenRate = .0f;
-    public int closeDstNum = 0;
+    public float closeDstNum = 0;
     public float connectTime = 0.1f;
     public float maxConnectAngle = 45.0f;
     public int minPatrolLength = 0;
@@ -238,18 +238,7 @@ public class PatrolManager : MonoBehaviour
                 }
                 choosenNode.Add(node);
                 choosenNodeDic.Add(node.pos, node);
-                tiltSpread[i].pos += tiltSpread[i].dir;
-
-                //如果新增的點在障礙物夾角範圍內不加入
-                if (!CheckNearObstacle(node.pos.x, node.pos.y))
-                {
-                }
-                else {
-                    Debug.Log("移除衍伸點  " + node.pos.x + "," + node.pos.y);
-                    tiltSpread.RemoveAt(i);
-                }
-
-                
+                tiltSpread[i].pos += tiltSpread[i].dir; 
             }
         }
 
@@ -283,19 +272,148 @@ public class PatrolManager : MonoBehaviour
                     //    choosenNodeDic.Remove(new Vector2Int(currentNode.x, currentNode.y));
                     //}
 
-                    //被選的檢查自己有沒有太靠近障礙物角
-                    if (CheckNearObstacle(currentNode.x, currentNode.y))
-                    {
-                    }
-
                 }
                 else
                 {
+                    //用於延伸方向碰到另一方向斜邊，新增延伸
+                    bool extendTiltSpread = false;
+                    Vector2Int extendTiltSpreadVec2 = new Vector2Int(0, 0);
+
                     //當下點也加入進整個地圖的參考
                     spreadGrid[currentNode.x, currentNode.y].dir = currentNode.direction;
 
                     int nextX = currentNode.x + currentNode.direction.x;
                     int nextY = currentNode.y + currentNode.direction.y;
+
+                    //斜邊特別新增隔壁節點
+                    if (currentNode.direction.sqrMagnitude > 1.5f)
+                    {
+                        //新增水平
+                        //下一格超過範圍
+                        if (nextX >= spreadGrid.GetLength(0) ||  nextX < 0 ) { 
+                        
+                        }
+                        //下一格是被選點
+                        else if (spreadGrid[nextX, currentNode.y].choosen)
+                        {
+                        }
+                        //下一格是障礙
+                        else if (!spreadGrid[nextX, currentNode.y].walkable)
+                        {
+                            //spreadGrid[nextX, currentNode.y].stop = true;
+                        }
+                        //下一格是同名稱，且遇到方向是垂直的，通常是為了解決斜向擺放的方塊自己碰撞的問題
+                        else if (spreadGrid[nextX, currentNode.y].fromArea.Contains(area.Name) && (spreadGrid[nextX, currentNode.y].dir.y != 0))
+                        {
+
+                        }
+                        //新增隔壁x方向節點
+                        //前進方向互相撞到，存下來
+                        else if ((spreadGrid[nextX, currentNode.y].dir.sqrMagnitude > 0.5f))//  && spreadGrid[nextX, currentNode.y].fromArea.CompareTo(area.Name) != 0 || ((spreadGrid[nextX, currentNode.y].dir.x + currentNode.direction.x == 0) && spreadGrid[nextX, currentNode.y].fromArea.CompareTo(area.Name) == 0)
+                        {
+                            spreadGrid[nextX, currentNode.y].choosen = true;
+                            spreadGrid[nextX, currentNode.y].pos = new Vector2Int(nextX, currentNode.y);
+
+                            //新增已選的鄰居
+                            for (int n = choosenNode.Count - 1; n >= 0; n--)
+                            {
+                                Vector2Int diff = choosenNode[n].pos - spreadGrid[nextX, currentNode.y].pos;
+                                if (diff.sqrMagnitude > 0 && diff.sqrMagnitude <= 2)
+                                {
+                                    if (!spreadGrid[nextX, currentNode.y].neighbor.Contains(choosenNode[n])) spreadGrid[nextX, currentNode.y].neighbor.Add(choosenNode[n]);
+                                    if (!choosenNode[n].neighbor.Contains(spreadGrid[nextX, currentNode.y])) choosenNode[n].neighbor.Add(spreadGrid[nextX, currentNode.y]);
+                                }
+                            }
+                            choosenNode.Add(spreadGrid[nextX, currentNode.y]);
+                            choosenNodeDic.Add(new Vector2Int(nextX, currentNode.y), spreadGrid[nextX, currentNode.y]);
+
+                            //延伸方向碰到另一方向斜邊，新增延伸
+                            if (spreadGrid[nextX, currentNode.y].dir.sqrMagnitude > 1.5f)
+                            {
+                                if (!extendTiltSpread && (spreadGrid[currentNode.x, nextY].dir + currentNode.direction).sqrMagnitude >= 1)
+                                {
+                                    extendTiltSpreadVec2 += spreadGrid[nextX, currentNode.y].dir + new Vector2Int(currentNode.direction.x, 0);
+                                    extendTiltSpread = true;
+                                }
+                            }
+
+                        }
+                        //最後如果不是算過的，新增隔壁x方向節點
+                        else
+                        {
+                            area.hasCouculateNode[nextX, nextY] = true;
+                            area.couculateNodeDir[nextX, nextY] = new Vector2Int(currentNode.direction.x, 0);
+                            spreadGrid[nextX, currentNode.y].dir = new Vector2Int(currentNode.direction.x, 0);
+                            spreadGrid[nextX, currentNode.y].current = true;
+                            if (!spreadGrid[nextX, currentNode.y].fromArea.Contains(area.Name)) spreadGrid[nextX, currentNode.y].fromArea.Add(area.Name);
+                            area.AddSpreadGridTilt(nextX, currentNode.y, new Vector2Int(currentNode.direction.x, 0), currentNode.choosenWeight + PerSpreadWeight);
+                        }
+
+                        //新增垂直方向
+                        //下一格超過範圍
+                        if (nextY >= spreadGrid.GetLength(1) || nextY < 0)
+                        {
+
+                        }
+                        //下一格是被選點
+                        else if (spreadGrid[currentNode.x, nextY].choosen)
+                        {
+
+                        }
+                        //下一格是障礙
+                        else if (!spreadGrid[currentNode.x, nextY].walkable)
+                        {
+                            //spreadGrid[currentNode.x, nextY].stop = true;
+                        }
+                        //下一格是同名稱，且遇到方向是水平的，通常是為了解決斜向擺放的方塊自己碰撞的問題
+                        else if (spreadGrid[currentNode.x, nextY].fromArea.Contains(area.Name) && (spreadGrid[currentNode.x, nextY].dir.x != 0))
+                        {
+
+                        }
+                        //新增隔壁y方向節點
+                        //前進方向互相撞到，存下來
+                        else if (spreadGrid[currentNode.x, nextY].dir.sqrMagnitude > 0.5f)
+                        {
+                            spreadGrid[currentNode.x, nextY].choosen = true;
+                            spreadGrid[currentNode.x, nextY].pos = new Vector2Int(currentNode.x, nextY);
+
+                            //新增已選的鄰居
+                            for (int n = choosenNode.Count - 1; n >= 0; n--)
+                            {
+                                Vector2Int diff = choosenNode[n].pos - spreadGrid[currentNode.x, nextY].pos;
+                                if (diff.sqrMagnitude > 0 && diff.sqrMagnitude <= 2)
+                                {
+                                    if (!spreadGrid[currentNode.x, nextY].neighbor.Contains(choosenNode[n])) spreadGrid[currentNode.x, nextY].neighbor.Add(choosenNode[n]);
+                                    if (!choosenNode[n].neighbor.Contains(spreadGrid[currentNode.x, nextY])) choosenNode[n].neighbor.Add(spreadGrid[currentNode.x, nextY]);
+
+                                }
+                            }
+                            choosenNode.Add(spreadGrid[currentNode.x, nextY]);
+                            choosenNodeDic.Add(new Vector2Int(currentNode.x, nextY), spreadGrid[currentNode.x, nextY]);
+
+                            //延伸方向碰到另一方向斜邊，新增延伸
+                            if (spreadGrid[currentNode.x, nextY].dir.sqrMagnitude > 1.5f)
+                            {
+                                if (!extendTiltSpread && (spreadGrid[currentNode.x, nextY].dir + currentNode.direction).sqrMagnitude >= 1)
+                                {
+                                    extendTiltSpreadVec2 += spreadGrid[currentNode.x, nextY].dir + new Vector2Int(0, currentNode.direction.y);
+                                    extendTiltSpread = true;
+                                }
+                            }
+                        }
+                        //最後如果不是算過的，新增隔壁y方向節點
+                        else // if (spreadGrid[currentNode.x, nextY].dir.sqrMagnitude < 0.5f)
+                        {
+                            area.hasCouculateNode[nextX, nextY] = true;
+                            area.couculateNodeDir[nextX, nextY] = new Vector2Int(0, currentNode.direction.y);
+                            spreadGrid[currentNode.x, nextY].dir = new Vector2Int(0, currentNode.direction.y);
+                            spreadGrid[currentNode.x, nextY].current = true;
+                            if (!spreadGrid[currentNode.x, nextY].fromArea.Contains(area.Name)) spreadGrid[currentNode.x, nextY].fromArea.Add(area.Name);
+                            area.AddSpreadGridTilt(currentNode.x, nextY, new Vector2Int(0, currentNode.direction.y), currentNode.choosenWeight + PerSpreadWeight);
+
+                        }
+                    }
+
                     //下一格超過grid範圍
                     if (nextX >= spreadGrid.GetLength(0) || nextY >= spreadGrid.GetLength(1) || nextX < 0 || nextY < 0)
                     {
@@ -326,7 +444,7 @@ public class PatrolManager : MonoBehaviour
                         spreadGrid[currentNode.x, currentNode.y].stop = true;
                     }
 
-                    //同名稱且水平和垂直都沒有抵銷
+                    //下一格同名稱且水平和垂直都沒有抵銷
                     else if (spreadGrid[nextX, nextY].fromArea.Contains(area.Name) && ((spreadGrid[nextX, nextY].dir.x + currentNode.direction.x != 0) && (spreadGrid[nextX, nextY].dir.y + currentNode.direction.y != 0))
                             ) {
                         spreadGrid[currentNode.x, currentNode.y].current = false;
@@ -335,106 +453,6 @@ public class PatrolManager : MonoBehaviour
                     }
                     else
                     {
-
-                        //斜邊特別新增隔壁節點
-                        if (currentNode.direction.sqrMagnitude > 1.5f)
-                        {
-                            //新增水平
-                            //下一格是被選點
-                            if (spreadGrid[nextX, currentNode.y].choosen)
-                            {
-                            }
-                            //下一格是障礙
-                            else if (!spreadGrid[nextX, currentNode.y].walkable)
-                            {
-                                //spreadGrid[nextX, currentNode.y].stop = true;
-                            }
-                            //下一格是同名稱，且遇到方向是垂直的，通常是為了解決斜向擺放的方塊自己碰撞的問題
-                            else if (spreadGrid[nextX, currentNode.y].fromArea.Contains(area.Name) && (spreadGrid[nextX, currentNode.y].dir.y != 0))
-                            {
-
-                            }
-                            //新增隔壁x方向節點
-                            //前進方向互相撞到，存下來
-                            else if ((spreadGrid[nextX, currentNode.y].dir.sqrMagnitude > 0.5f))//  && spreadGrid[nextX, currentNode.y].fromArea.CompareTo(area.Name) != 0 || ((spreadGrid[nextX, currentNode.y].dir.x + currentNode.direction.x == 0) && spreadGrid[nextX, currentNode.y].fromArea.CompareTo(area.Name) == 0)
-                            {
-                                spreadGrid[nextX, currentNode.y].choosen = true;
-                                spreadGrid[nextX, currentNode.y].pos = new Vector2Int(nextX, currentNode.y);
-
-                                //新增已選的鄰居
-                                for (int n = choosenNode.Count - 1; n >= 0; n--)
-                                {
-                                    Vector2Int diff = choosenNode[n].pos - spreadGrid[nextX, currentNode.y].pos;
-                                    if (diff.sqrMagnitude > 0 && diff.sqrMagnitude <= 2)
-                                    {
-                                        if(!spreadGrid[nextX, currentNode.y].neighbor.Contains(choosenNode[n])) spreadGrid[nextX, currentNode.y].neighbor.Add(choosenNode[n]);
-                                        if(!choosenNode[n].neighbor.Contains(spreadGrid[nextX, currentNode.y])) choosenNode[n].neighbor.Add(spreadGrid[nextX, currentNode.y]);
-                                    }
-                                }
-                                choosenNode.Add(spreadGrid[nextX, currentNode.y]);
-                                choosenNodeDic.Add(new Vector2Int(nextX, currentNode.y), spreadGrid[nextX, currentNode.y]);
-                            }
-                            //最後如果不是算過的，新增隔壁x方向節點
-                            else
-                            {
-                                area.hasCouculateNode[nextX, nextY] = true;
-                                area.couculateNodeDir[nextX, nextY] = new Vector2Int(currentNode.direction.x, 0);
-                                spreadGrid[nextX, currentNode.y].dir = new Vector2Int(currentNode.direction.x, 0);
-                                spreadGrid[nextX, currentNode.y].current = true;
-                                if (!spreadGrid[nextX, currentNode.y].fromArea.Contains(area.Name)) spreadGrid[nextX, currentNode.y].fromArea.Add(area.Name);
-                                area.AddSpreadGridTilt(nextX, currentNode.y, new Vector2Int(currentNode.direction.x, 0), currentNode.choosenWeight + PerSpreadWeight);
-                            }
-
-                            //新增垂直方向
-                            //下一格是被選點
-                            if (spreadGrid[currentNode.x, nextY].choosen)
-                            {
-
-                            }
-                            //下一格是障礙
-                            else if (!spreadGrid[currentNode.x, nextY].walkable)
-                            {
-                                //spreadGrid[currentNode.x, nextY].stop = true;
-                            }
-                            //下一格是同名稱，且遇到方向是水平的，通常是為了解決斜向擺放的方塊自己碰撞的問題
-                            else if (spreadGrid[currentNode.x, nextY].fromArea.Contains(area.Name) && (spreadGrid[currentNode.x, nextY].dir.x != 0))
-                            {
-
-                            }
-                            //新增隔壁y方向節點
-                            //前進方向互相撞到，存下來
-                            else if (spreadGrid[currentNode.x, nextY].dir.sqrMagnitude > 0.5f)
-                            {
-                                spreadGrid[currentNode.x, nextY].choosen = true;
-                                spreadGrid[currentNode.x, nextY].pos = new Vector2Int(currentNode.x, nextY);
-
-                                //新增已選的鄰居
-                                for (int n = choosenNode.Count - 1; n >= 0; n--)
-                                {
-                                    Vector2Int diff = choosenNode[n].pos - spreadGrid[currentNode.x, nextY].pos;
-                                    if (diff.sqrMagnitude > 0 && diff.sqrMagnitude <= 2)
-                                    {
-                                        if(!spreadGrid[currentNode.x, nextY].neighbor.Contains(choosenNode[n])) spreadGrid[currentNode.x, nextY].neighbor.Add(choosenNode[n]);
-                                        if(!choosenNode[n].neighbor.Contains(spreadGrid[currentNode.x, nextY])) choosenNode[n].neighbor.Add(spreadGrid[currentNode.x, nextY]);
-
-                                    }
-                                }
-                                choosenNode.Add(spreadGrid[currentNode.x, nextY]);
-                                choosenNodeDic.Add(new Vector2Int(currentNode.x, nextY), spreadGrid[currentNode.x, nextY]);
-                            }
-                            //最後如果不是算過的，新增隔壁y方向節點
-                            else // if (spreadGrid[currentNode.x, nextY].dir.sqrMagnitude < 0.5f)
-                            {
-                                area.hasCouculateNode[nextX, nextY] = true;
-                                area.couculateNodeDir[nextX, nextY] = new Vector2Int(0, currentNode.direction.y);
-                                spreadGrid[currentNode.x, nextY].dir = new Vector2Int(0, currentNode.direction.y);
-                                spreadGrid[currentNode.x, nextY].current = true;
-                                if (!spreadGrid[currentNode.x, nextY].fromArea.Contains(area.Name)) spreadGrid[currentNode.x, nextY].fromArea.Add(area.Name);
-                                area.AddSpreadGridTilt(currentNode.x, nextY, new Vector2Int(0, currentNode.direction.y), currentNode.choosenWeight + PerSpreadWeight);
-
-                            }
-                        }
-
                         //前進方向互相撞到，存下來
                         if ((spreadGrid[nextX, nextY].dir.sqrMagnitude > 0.5f)) 
                         {
@@ -456,17 +474,13 @@ public class PatrolManager : MonoBehaviour
                             choosenNode.Add(spreadGrid[nextX, nextY]);
                             choosenNodeDic.Add(new Vector2Int(nextX, nextY), spreadGrid[nextX, nextY]);
 
-                            //如果新增的點在障礙物夾角範圍內不加入
-                            if (!CheckNearObstacle(nextX, nextY))
-                            {}
-                            else spreadGrid[nextX, nextY].choosen = false;
-
                             area.spreadGrids.Remove(area.spreadGridNmae[j]);
                             area.spreadGridNmae.RemoveAt(j);
 
                             //互為斜方碰撞，延伸單一向
                             if (currentNode.direction.sqrMagnitude > 1.5f && spreadGrid[nextX, nextY].dir.sqrMagnitude > 1.5f)
                             {
+                                //延伸方向
                                 Vector2Int dir = Vector2Int.zero;
                                 if ((currentNode.direction.x + spreadGrid[nextX, nextY].dir.x) != 0) {
                                     dir = new Vector2Int(currentNode.direction.x, 0);
@@ -479,14 +493,78 @@ public class PatrolManager : MonoBehaviour
                                 SpreadNode node = new SpreadNode();
                                 node.pos = new Vector2Int(newX, newY);
                                 node.dir = dir;
-                                if(!node.fromArea.Contains(area.Name))node.fromArea.Add(area.Name);
-                                if(spreadGrid[nextX, nextY].fromArea.Count > 0) node.fromArea.Add(spreadGrid[nextX, nextY].fromArea[0]);
+                                //if(!node.fromArea.Contains(area.Name))node.fromArea.Add(area.Name);
+                                //if(spreadGrid[nextX, nextY].fromArea.Count > 0) node.fromArea.Add(spreadGrid[nextX, nextY].fromArea[0]);
                                 tiltSpread.Add(node);
                                 Debug.Log("延伸  " + node.pos + "   dir:" + node.dir);
                             }
                         }
                         else {
-                            
+                            //延伸方向碰到另一方向斜邊，新增延伸
+                            if (extendTiltSpread) {
+
+                                //有兩個方向，等於有三個斜邊接壤，直接設為選擇點
+                                if (extendTiltSpreadVec2.sqrMagnitude > 1)
+                                {
+                                    currentNode.choosenWeight += PerSpreadWeight;
+                                    spreadGrid[nextX, nextY].choosen = true;
+                                    spreadGrid[nextX, nextY].pos = new Vector2Int(nextX, nextY);
+                                    spreadGrid[nextX, nextY].dir = currentNode.direction;
+
+                                    //新增鄰居
+                                    for (int n = choosenNode.Count - 1; n >= 0; n--)
+                                    {
+                                        Vector2Int diff = choosenNode[n].pos - spreadGrid[nextX, nextY].pos;
+                                        if (diff.sqrMagnitude > 0 && diff.sqrMagnitude <= 2)
+                                        {
+                                            if (!spreadGrid[nextX, nextY].neighbor.Contains(choosenNode[n])) spreadGrid[nextX, nextY].neighbor.Add(choosenNode[n]);
+                                            if (!choosenNode[n].neighbor.Contains(spreadGrid[nextX, nextY])) choosenNode[n].neighbor.Add(spreadGrid[nextX, nextY]);
+
+                                        }
+                                    }
+                                    choosenNode.Add(spreadGrid[nextX, nextY]);
+                                    choosenNodeDic.Add(new Vector2Int(nextX, nextY), spreadGrid[nextX, nextY]);
+                                    area.spreadGrids.Remove(area.spreadGridNmae[j]);
+                                    area.spreadGridNmae.RemoveAt(j);
+
+                                }
+                                else {
+                                    //只碰到單一斜邊，將下一點方向改成延伸
+                                    spreadGrid[nextX, nextY].choosen = true;
+                                    spreadGrid[nextX, nextY].pos = new Vector2Int(nextX, nextY);
+                                    spreadGrid[nextX, nextY].dir = extendTiltSpreadVec2;
+
+                                    currentNode.direction = extendTiltSpreadVec2;
+                                    int newX = nextX + extendTiltSpreadVec2.x;
+                                    int newY = nextY + extendTiltSpreadVec2.y;
+                                    SpreadNode node = new SpreadNode();
+                                    node.pos = new Vector2Int(newX, newY);
+                                    node.dir = extendTiltSpreadVec2;
+                                    //if(!node.fromArea.Contains(area.Name))node.fromArea.Add(area.Name);
+                                    //if(spreadGrid[nextX, nextY].fromArea.Count > 0) node.fromArea.Add(spreadGrid[nextX, nextY].fromArea[0]);
+                                    tiltSpread.Add(node);
+                                    Debug.Log("第2種延伸  " + nextX + "," + nextY + "   dir:" + currentNode.direction);
+
+                                    //新增鄰居
+                                    for (int n = choosenNode.Count - 1; n >= 0; n--)
+                                    {
+                                        Vector2Int diff = choosenNode[n].pos - spreadGrid[nextX, nextY].pos;
+                                        if (diff.sqrMagnitude > 0 && diff.sqrMagnitude <= 2)
+                                        {
+                                            if (!spreadGrid[nextX, nextY].neighbor.Contains(choosenNode[n])) spreadGrid[nextX, nextY].neighbor.Add(choosenNode[n]);
+                                            if (!choosenNode[n].neighbor.Contains(spreadGrid[nextX, nextY])) choosenNode[n].neighbor.Add(spreadGrid[nextX, nextY]);
+
+                                        }
+                                    }
+                                    choosenNode.Add(spreadGrid[nextX, nextY]);
+                                    choosenNodeDic.Add(new Vector2Int(nextX, nextY), spreadGrid[nextX, nextY]);
+                                    area.spreadGrids.Remove(area.spreadGridNmae[j]);
+                                    area.spreadGridNmae.RemoveAt(j);
+                                }
+                                
+                            }
+                            //一般傳播點給下一格方向
+                            else spreadGrid[nextX, nextY].dir = currentNode.direction;
                             currentNode.choosenWeight += PerSpreadWeight;
                         }
 
@@ -498,7 +576,7 @@ public class PatrolManager : MonoBehaviour
                         hasC[nextX, nextY] = true;
                         currentNode.x = nextX;
                         currentNode.y = nextY;
-                        spreadGrid[nextX, nextY].dir = currentNode.direction;
+                        //spreadGrid[nextX, nextY].dir = currentNode.direction;
                         spreadGrid[nextX, nextY].fromArea.Add(area.Name);
                         spreadGrid[nextX, nextY].current = true;
 
@@ -509,12 +587,6 @@ public class PatrolManager : MonoBehaviour
 
             }
         }
-        if (skip) {
-            CouculateGraphCross();
-            //CouculateGraphTurn();
-        }
-
-
         //if (skip)
         //{
         //    Debug.Log("計算末端點  " + choosenNode.Count);
@@ -558,6 +630,7 @@ public class PatrolManager : MonoBehaviour
         //            Debug.Log("個數1 末端 ");
         //            endNode = node;
         //        }
+        //        //有多個鄰居的末端，方向不會抵銷
         //        else if (count == 2 && (Mathf.Abs(xNum) >= 2 || Mathf.Abs(yNum) >= 2))
         //        {
         //            Debug.Log("個數多 末端 ");
@@ -571,8 +644,24 @@ public class PatrolManager : MonoBehaviour
         //            breakNum++;
         //            if (breakNum > 9999) break;
 
-        //            if (endNode.neighbor.Count >= 3)
+        //            if (endNode.neighbor.Count > 2)
         //            {
+        //                for (int j = endNode.neighbor.Count - 1; j >= 0; j--)
+        //                {
+        //                    if (!couculatedNodes.Contains(endNode.neighbor[j].pos)) {
+        //                        xNum += (endNode.neighbor[j].pos.x - endNode.pos.x);
+        //                        yNum += (endNode.neighbor[j].pos.y - endNode.pos.y);
+        //                    }
+        //                    xNum += (endNode.neighbor[j].pos.x - endNode.pos.x);
+        //                    yNum += (endNode.neighbor[j].pos.y - endNode.pos.y);
+        //                    count++;
+        //                    Debug.Log("鄰居有  " + endNode.neighbor[j].pos);
+        //                    if (!waitNodes.Contains(endNode.neighbor[j]) && !couculatedNodes.Contains(endNode.neighbor[j].pos)) waitNodes.Add(endNode.neighbor[j]);
+        //                }
+        //                if (Mathf.Abs(xNum) >= 2 || Mathf.Abs(yNum) >= 2)
+        //                {
+        //                    couculatedNodes.Add(endNode.pos);
+        //                }
         //                endNode = null;
         //            }
         //            else
@@ -585,28 +674,43 @@ public class PatrolManager : MonoBehaviour
         //                Debug.Log(endNode.pos + " :  " + VStart + " ---- " + VEnd + "  " + Physics.Linecast(VStart, VEnd, 1 << LayerMask.NameToLayer("Obstacle")));
         //                Debug.Log(endNode.pos + " :  " + HStart + " ---- " + HEnd + "  " + Physics.Linecast(VStart, VEnd, 1 << LayerMask.NameToLayer("Obstacle")));
 
-        //                if (Physics.Linecast(VStart, VEnd, 1 << LayerMask.NameToLayer("Obstacle")) || Physics.Linecast(HStart, HEnd, 1 << LayerMask.NameToLayer("Obstacle")))
+        //                couculatedNodes.Add(endNode.pos);
+        //                for (int w = 0; w < endNode.neighbor.Count; w++)
         //                {
-        //                    couculatedNodes.Add(endNode.pos);
-        //                    for (int w = 0; w < endNode.neighbor.Count; w++)
-        //                    {
-        //                        if (!waitNodes.Contains(endNode.neighbor[w]) && !couculatedNodes.Contains(endNode.neighbor[w].pos)) waitNodes.Add(endNode.neighbor[w]);
-        //                    }
-        //                    if (waitNodes.Count > 0)
-        //                    {
-        //                        endNode = waitNodes[0];
-        //                        waitNodes.RemoveAt(0);
-        //                    }
-        //                    else
-        //                    {
-        //                        endNode = null;
-        //                    }
+        //                    if (!waitNodes.Contains(endNode.neighbor[w]) && !couculatedNodes.Contains(endNode.neighbor[w].pos)) waitNodes.Add(endNode.neighbor[w]);
+        //                }
+        //                if (waitNodes.Count > 0)
+        //                {
+        //                    endNode = waitNodes[0];
+        //                    waitNodes.RemoveAt(0);
         //                }
         //                else
         //                {
-        //                    endNode.endNode = true;
         //                    endNode = null;
         //                }
+
+        //                //if (Physics.Linecast(VStart, VEnd, 1 << LayerMask.NameToLayer("Obstacle")) || Physics.Linecast(HStart, HEnd, 1 << LayerMask.NameToLayer("Obstacle")))
+        //                //{
+        //                //    couculatedNodes.Add(endNode.pos);
+        //                //    for (int w = 0; w < endNode.neighbor.Count; w++)
+        //                //    {
+        //                //        if (!waitNodes.Contains(endNode.neighbor[w]) && !couculatedNodes.Contains(endNode.neighbor[w].pos)) waitNodes.Add(endNode.neighbor[w]);
+        //                //    }
+        //                //    if (waitNodes.Count > 0)
+        //                //    {
+        //                //        endNode = waitNodes[0];
+        //                //        waitNodes.RemoveAt(0);
+        //                //    }
+        //                //    else
+        //                //    {
+        //                //        endNode = null;
+        //                //    }
+        //                //}
+        //                //else
+        //                //{
+        //                //    endNode.endNode = true;
+        //                //    endNode = null;
+        //                //}
         //            }
 
         //        }
@@ -620,55 +724,16 @@ public class PatrolManager : MonoBehaviour
         //        choosenNodeDic.Remove(couculatedNodes[i]);
         //    }
         //}
-    }
 
-    public bool CheckNearObstacle(int x, int y) {
-        return false;
-        if (closeDstNum == 0) return false;
-
-        string hArea = string.Empty;
-        string vArea = string.Empty;
-        bool hColl = false;
-        bool vColl = false;
-        for (int i = closeDstNum; i > 0; i--) {
-            Vector2Int detectHLPos =  new Vector2Int(x-closeDstNum,y);
-            Vector2Int detectHRPos = new Vector2Int(x+closeDstNum, y);
-            if (detectHLPos.x < 0 || detectHRPos.x >= gridX)
-            {
-                hArea = "Border";
-                hColl = true;
-            }
-            else if (!spreadGrid[detectHLPos.x, detectHLPos.y].walkable)
-            {
-                hArea = pathFindGrid.GetColliderName(detectHLPos);
-                hColl = true;
-            }
-            else if (!spreadGrid[detectHRPos.x, detectHRPos.y].walkable)
-            {
-                hArea = pathFindGrid.GetColliderName(detectHRPos);
-                hColl = true;
-            }
-
-
-            Vector2Int detectVDPos = new Vector2Int(x, y-closeDstNum);
-            Vector2Int detectVUPos = new Vector2Int(x, y+closeDstNum);
-            if (detectVDPos.y < 0 || detectVUPos.y >= gridY) {
-                vArea = "Border";
-                vColl = true;
-            }
-            else if (!spreadGrid[detectVDPos.x, detectVDPos.y].walkable) {
-                vArea = pathFindGrid.GetColliderName(detectVDPos);
-                vColl = true;
-            }
-            else if (!spreadGrid[detectVUPos.x, detectVUPos.y].walkable) {
-                vArea = pathFindGrid.GetColliderName(detectVUPos);
-                vColl = true;
-            }
+        if (skip)
+        {
+            CouculateGraphCross();
+            CouculateGraphTurn();
         }
-        return (hColl && vColl ); 
+
     }
 
-    
+
 
     void AddGraph() {
         if (ConfirmGraph.Count > 0) {
@@ -788,14 +853,14 @@ public class PatrolManager : MonoBehaviour
         List<PatrolGraphNode> graphNodes = new List<PatrolGraphNode>();
         Dictionary<Vector2Int, PatrolGraphNode> graphNodeDic = new Dictionary<Vector2Int, PatrolGraphNode>();
         bool hasMergeNeighbor = false;
-        SpreadNode mergeNode = new SpreadNode();
+        
         for (int i = choosenNode.Count - 1; i >= 0; i--)
         {
             int count = 0;
             int couculateNum = 0;
             int xNum = 0, yNum = 0;
-            int crossWeight = 0;
-            int mergeCount = 0;
+
+            SpreadNode mergeNode = new SpreadNode();
 
             if (!choosenNode[i].beenMerged && choosenNode[i].neighbor.Count > 2)
             {
@@ -808,6 +873,8 @@ public class PatrolManager : MonoBehaviour
 
                 for (int j = 0; j < choosenNode[i].neighbor.Count; j++)
                 {
+                    if (choosenNode[i].pos.x == 31 && choosenNode[i].pos.y == 73) Debug.Log("neighbor  " + choosenNode[i].neighbor[j].pos);
+
                     Vector2Int detectPos = choosenNode[i].neighbor[j].pos;
                     Vector2Int diff = detectPos - choosenNode[i].pos;
                     count++;
@@ -815,10 +882,11 @@ public class PatrolManager : MonoBehaviour
                     yNum += diff.y;
                     couculateNum += Mathf.Abs(diff.x);
                     couculateNum += Mathf.Abs(diff.y);
-                    Debug.Log(choosenNode[i].pos + "couculate   " + detectPos.x + "," + detectPos.y + " num " + xNum + "," + yNum);
+                    Debug.Log(choosenNode[i].pos + "couculate  第 " + j +"個 "  + detectPos.x + "," + detectPos.y + " num " + xNum + "," + yNum);
 
                     //鄰居是交錯點
-                    if (choosenNode[i].neighbor[j].neighbor.Count > 2) {
+                    if (choosenNode[i].neighbor[j].neighbor.Count > 2 || choosenNode[i].neighbor[j].beenMerged)
+                    {
                         choosenNode[i].neighbor[j].crossNode = true;
                         //鄰居是單純交錯點
                         if (!choosenNode[i].neighbor[j].beenMerged)
@@ -826,7 +894,7 @@ public class PatrolManager : MonoBehaviour
                             //自己不是合併點，建立新合併點
                             if (!choosenNode[i].beenMerged)
                             {
-                                Debug.Log("自己不是合併點，建立新合併點  加入 " + choosenNode[i].neighbor[j]);
+                                Debug.Log("自己不是合併點，建立新合併點  加入 " + choosenNode[i].neighbor[j].pos);
                                 choosenNode[i].beenMerged = true;
                                 choosenNode[i].neighbor[j].beenMerged = true;
                                 mergeNode = new SpreadNode();
@@ -835,17 +903,34 @@ public class PatrolManager : MonoBehaviour
                                 mergeNode.pos += choosenNode[i].neighbor[j].pos;
                                 choosenNode[i].mergeNode = mergeNode;
                                 choosenNode[i].neighbor[j].mergeNode = mergeNode;
-                                
+
                                 //先將合併點鄰居清單設為鄰居的鄰居清單
-                                mergeNode.neighbor = choosenNode[i].neighbor[j].neighbor;
+                                //mergeNode.neighbor = choosenNode[i].neighbor[j].neighbor;
 
                                 bool notCross = false;
+                                //增加鄰居的鄰居進合併點鄰居，鄰居必須不為被合併且不為交錯點
+                                for (int m = 0; m < choosenNode[i].neighbor[j].neighbor.Count; m++)
+                                {
+
+                                    if (choosenNode[i].neighbor[j].neighbor[m].beenMerged)
+                                    {
+
+                                    }
+                                    else {
+                                        //將沒加如過的加進鄰居清單
+                                        if (choosenNode[i].neighbor[j].neighbor[m].neighbor.Count <= 2 && !choosenNode[i].neighbor[j].neighbor[m].beenMerged &&
+                                            !mergeNode.neighbor.Contains(choosenNode[i].neighbor[j].neighbor[m]))
+                                        {
+                                            mergeNode.neighbor.Add(choosenNode[i].neighbor[j].neighbor[m]);
+                                        }
+                                    }
+                                   
+                                }
                                 //增加自己的鄰居進合併點鄰居
                                 for (int m = 0; m < choosenNode[i].neighbor.Count; m++)
                                 {
-                                    //合併的兩點不加進清單
-                                    if (!choosenNode[i].neighbor[m].Equals(choosenNode[i].neighbor[j])) {
-                                        //將沒加如過的加進清單
+                                    if (!choosenNode[i].neighbor[m].beenMerged && choosenNode[i].neighbor[m].neighbor.Count <= 2)
+                                    {
                                         if (!mergeNode.neighbor.Contains(choosenNode[i].neighbor[m]))
                                         {
                                             mergeNode.neighbor.Add(choosenNode[i].neighbor[m]);
@@ -854,30 +939,30 @@ public class PatrolManager : MonoBehaviour
                                         else
                                         {
                                             //沒有其他分支，不為交錯點，移除合併點和該點
-                                            if (choosenNode[i].neighbor[m].neighbor.Count == 2)
-                                            {
-                                                //SpreadNode removeNode = choosenNode[i].neighbor[m];
+                                            Debug.Log("移除 " + choosenNode[i].neighbor[m].pos);
+                                            SpreadNode removeNode = choosenNode[i].neighbor[m];
 
-                                                //choosenNode[i].crossNode = false;
-                                                //choosenNode[i].neighbor.RemoveAt(m);
-                                                //choosenNode[i].beenMerged = false;
+                                            choosenNode[i].crossNode = false;
+                                            choosenNode[i].beenMerged = false;
 
-                                                //choosenNode[i].neighbor[j].crossNode = false;
-                                                //choosenNode[i].neighbor[j].beenMerged = false;
-                                                //choosenNode[i].neighbor[j].neighbor.Remove(removeNode);
+                                            choosenNode[i].neighbor[j].crossNode = false;
+                                            choosenNode[i].neighbor[j].beenMerged = false;
 
-                                                //choosenNodeDic.Remove(removeNode.pos);
-                                                //choosenNode.Remove(removeNode);
+                                            choosenNode[i].neighbor[m].choosen = false;
 
-                                                //notCross = true;
-                                                //break;
-                                            }
-                                            //被兩個合併點包圍，且有分支，從合併點鄰居移除，之後遍歷會變成合併點
-                                            else {
-                                                mergeNode.neighbor.Remove(choosenNode[i].neighbor[m]);
-                                            }
+                                            choosenNode[i].neighbor[j].neighbor.Remove(choosenNode[i].neighbor[m]);
+                                            choosenNode[i].neighbor.RemoveAt(m);
+
+                                            mergeNode.mergeCount = 0;
+                                            mergeNode.neighbor.Clear();
+
+                                            notCross = true;
+
+                                            Debug.Log(choosenNode[i].pos + " 剩餘鄰居 " + choosenNode[i].neighbor.Count);
+                                            Debug.Log(choosenNode[i].neighbor[j].pos + " 剩餘鄰居 " + choosenNode[i].neighbor[j].neighbor.Count);
+                                            break;
                                         }
-                                    } 
+                                    }
                                 }
                                 if (notCross) break;
 
@@ -899,7 +984,9 @@ public class PatrolManager : MonoBehaviour
                                 //增加鄰居的鄰居清單進合併點鄰居
                                 for (int m = 0; m < choosenNode[i].neighbor[j].neighbor.Count; m++)
                                 {
-                                    if (!choosenNode[i].Equals(choosenNode[i].neighbor[j].neighbor[m]) && !mergeNode.neighbor.Contains(choosenNode[i].neighbor[j].neighbor[m])) {
+                                    if (choosenNode[i].neighbor[j].neighbor[m].neighbor.Count <= 2 && !choosenNode[i].neighbor[j].neighbor[m].beenMerged &&
+                                        !mergeNode.neighbor.Contains(choosenNode[i].neighbor[j].neighbor[m]))
+                                    {
                                         mergeNode.neighbor.Add(choosenNode[i].neighbor[j].neighbor[m]);
                                     }
                                 }
@@ -928,18 +1015,22 @@ public class PatrolManager : MonoBehaviour
                                 //增加自己的鄰居進合併點鄰居
                                 for (int m = 0; m < choosenNode[i].neighbor.Count; m++)
                                 {
-                                    if (!choosenNode[i].neighbor[m].Equals(choosenNode[i].neighbor[j]) && !choosenNode[i].neighbor[m].beenMerged && !mergeNode.neighbor.Contains(choosenNode[i].neighbor[m])) {
+                                    if (choosenNode[i].neighbor[m].neighbor.Count <= 2 && !choosenNode[i].neighbor[m].beenMerged &&
+                                        !mergeNode.neighbor.Contains(choosenNode[i].neighbor[m]))
+                                    {
                                         mergeNode.neighbor.Add(choosenNode[i].neighbor[m]);
-                                    } 
+                                    }
                                 }
-  
+
                                 //choosenNode[i].neighbor = mergeNode.neighbor;
                                 choosenNode[i].neighbor[j].neighbor = mergeNode.neighbor;
                             }
-                            else {
+                            else
+                            {
                                 Debug.Log("自己是合併點，並確認是不是不同的合併點，將兩個合併點整合");
                                 //自己是合併點，並確認是不是不同的合併點，將兩個合併點整合
-                                if (!choosenNode[i].neighbor[j].mergeNode.Equals(choosenNode[i].mergeNode)) { 
+                                if (!choosenNode[i].neighbor[j].mergeNode.Equals(choosenNode[i].mergeNode))
+                                {
                                     mergeNode = choosenNode[i].neighbor[j].mergeNode;
                                     mergeNode.mergeCount += choosenNode[i].mergeNode.mergeCount;
                                     mergeNode.pos += choosenNode[i].mergeNode.pos;
@@ -948,24 +1039,32 @@ public class PatrolManager : MonoBehaviour
                                     //增加自己的合併點鄰居進合併點鄰居
                                     for (int m = 0; m < choosenNode[i].mergeNode.neighbor.Count; m++)
                                     {
-                                        if (!choosenNode[i].neighbor[j].Equals(choosenNode[i].mergeNode.neighbor[m]) && !choosenNode[i].mergeNode.neighbor[m].beenMerged && 
-                                            !mergeNode.neighbor.Contains(choosenNode[i].mergeNode.neighbor[m])) {
+                                        if (choosenNode[i].mergeNode.neighbor[m].neighbor.Count <= 2 && !choosenNode[i].mergeNode.neighbor[m].beenMerged &&
+                                            !mergeNode.neighbor.Contains(choosenNode[i].mergeNode.neighbor[m]))
+                                        {
                                             mergeNode.neighbor.Add(choosenNode[i].mergeNode.neighbor[m]);
-                                        } 
+                                        }
                                     }
                                     //choosenNode[i].neighbor = mergeNode.neighbor;
                                     choosenNode[i].neighbor[j].neighbor = mergeNode.neighbor;
+                                    choosenNode[i].mergeNode.pos = mergeNode.pos;
+                                    choosenNode[i].mergeNode.mergeCount = mergeNode.mergeCount;
+                                    choosenNode[i].mergeNode.neighbor = mergeNode.neighbor;
                                 }
                             }
                         }
                     }
+                    else Debug.Log("鄰居不為交錯點");
                 }
-                choosenNode[i].neighbor = mergeNode.neighbor;
+                //將自己的鄰居設為合併點鄰居
+                if(mergeNode.mergeCount > 0)choosenNode[i].neighbor = mergeNode.neighbor;
             }
 
-            if (choosenNode[i].beenMerged) {
-                foreach (SpreadNode node in choosenNode[i].mergeNode.neighbor) {
-                    Debug.Log(choosenNode[i].pos + "merge  neighbor " +  node.pos);
+            if (choosenNode[i].beenMerged)
+            {
+                foreach (SpreadNode node in choosenNode[i].mergeNode.neighbor)
+                {
+                    Debug.Log(choosenNode[i].pos + "merge  neighbor " + node.pos);
                 }
             }
 
@@ -1140,16 +1239,25 @@ public class PatrolManager : MonoBehaviour
     }
     void CouculateGraphTurn()
     {
-        List<PatrolGraphNode> graphNodes = new List<PatrolGraphNode>();
-        Dictionary<Vector2Int, PatrolGraphNode> graphNodeDic = new Dictionary<Vector2Int, PatrolGraphNode>();
+        //List<PatrolGraphNode> graphNodes = new List<PatrolGraphNode>();
+        //Dictionary<Vector2Int, PatrolGraphNode> graphNodeDic = new Dictionary<Vector2Int, PatrolGraphNode>();
         for (int i = choosenNode.Count - 1; i >= 0; i--)
         {
             if (choosenNode[i].crossNode && choosenNode[i].beenMerged) {
                 //mergeNode的pos只能除一次
                 if(!choosenNode[i].mergeNode.mergeCouculate) choosenNode[i].mergeNode.pos = new Vector2Int(Mathf.RoundToInt(choosenNode[i].mergeNode.pos.x / choosenNode[i].mergeNode.mergeCount), Mathf.RoundToInt(choosenNode[i].mergeNode.pos.y / choosenNode[i].mergeNode.mergeCount));
                 choosenNode[i].mergeNode.mergeCouculate = true;
+                choosenNode[i].neighbor = choosenNode[i].mergeNode.neighbor;
                 choosenNode[i].pos = choosenNode[i].mergeNode.pos;
+                continue;
             }
+
+            if (!choosenNode[i].choosen) {
+                choosenNodeDic.Remove(choosenNode[i].pos);
+                choosenNode.RemoveAt(i);
+                continue;
+            }
+
             int xNum = 0, yNum = 0;
             bool hasTurn = false;
             int count = 0;
@@ -1167,14 +1275,14 @@ public class PatrolManager : MonoBehaviour
                 //末端點
                 choosenNode[i].endNode = true;
             }
-            if (!hasTurn && (xNum != 0 || yNum != 0) && count > 1 && count < 3)
+            if (!hasTurn && (xNum != 0 || yNum != 0) && count == 2)
             {
                 PatrolGraphNode node = new PatrolGraphNode(choosenNode[i].pos.x, choosenNode[i].pos.y);
                 //一般列為轉折點
                 node.turnNode = true;
                 node.weight = 3;
-                graphNodes.Add(node);
-                graphNodeDic.Add(choosenNode[i].pos, node);
+                //graphNodes.Add(node);
+                //graphNodeDic.Add(choosenNode[i].pos, node);
                 choosenNode[i].turnNode = true;
             }
            

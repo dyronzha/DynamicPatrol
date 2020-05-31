@@ -511,36 +511,53 @@ namespace PathFinder
                         }
                         Gizmos.color = Color.white;
                         //Debug.Log(n.locNmae + "  " +  n.Direction);
-                        //if (n.Direction == 11) Gizmos.color = new Color(1, 0, 0);
-                        //else if (n.Direction == 12) Gizmos.color = new Color(0, 0, 1);
-                        //else if (n.Direction == 13) Gizmos.color = new Color(0, 1, 0);
-                        //else if (n.Direction == 14) Gizmos.color = new Color(0.5f, 0, 0);
-                        //else if (n.Direction == 23) Gizmos.color = new Color(1, 0, 1);
-                        //else if (n.Direction == 24) Gizmos.color = new Color(1, 1, 0);
-                        //else if (n.Direction == 26) Gizmos.color = new Color(0.5f, 0, 0.5f);
-                        //else if (n.Direction == 27) Gizmos.color = new Color(0.5f, 0.5f, 0f);
-                        if (n.Direction == 11) Gizmos.color = Color.cyan;
-                        else if (n.Direction == 12) Gizmos.color = Color.cyan;
-                        else if (n.Direction == 13) Gizmos.color = Color.cyan;
-                        else if (n.Direction == 14) Gizmos.color = Color.cyan;
-                        else if (n.Direction == 23) Gizmos.color = Color.cyan;
-                        else if (n.Direction == 24) Gizmos.color = Color.cyan;
-                        else if (n.Direction == 26) Gizmos.color = Color.cyan;
-                        else if (n.Direction == 27) Gizmos.color = Color.cyan;
+                        if (n.Direction == 11) Gizmos.color = new Color(1, 0, 0);
+                        else if (n.Direction == 12) Gizmos.color = new Color(0, 0, 1);
+                        else if (n.Direction == 13) Gizmos.color = new Color(0, 1, 0);
+                        else if (n.Direction == 14) Gizmos.color = new Color(0.5f, 0, 0);
+                        else if (n.Direction == 23) Gizmos.color = new Color(1, 0, 1);
+                        else if (n.Direction == 24) Gizmos.color = new Color(1, 1, 0);
+                        else if (n.Direction == 26) Gizmos.color = new Color(0.5f, 0, 0.5f);
+                        else if (n.Direction == 27) Gizmos.color = new Color(0.5f, 0.5f, 0f);
+                        //if (n.Direction == 11) Gizmos.color = Color.cyan;
+                        //else if (n.Direction == 12) Gizmos.color = Color.cyan;
+                        //else if (n.Direction == 13) Gizmos.color = Color.cyan;
+                        //else if (n.Direction == 14) Gizmos.color = Color.cyan;
+                        //else if (n.Direction == 23) Gizmos.color = Color.cyan;
+                        //else if (n.Direction == 24) Gizmos.color = Color.cyan;
+                        //else if (n.Direction == 26) Gizmos.color = Color.cyan;
+                        //else if (n.Direction == 27) Gizmos.color = Color.cyan;
                     }
                     else if (drawType == DrawType.AfterSpread)
                     {
                         Gizmos.color = Color.white;
                         if (!n.walkable) Gizmos.color = Color.black;
-                        if (patrolManager.spreadGrid[n.gridX, n.gridY].current) Gizmos.color = Color.gray;
+                        if (patrolManager.spreadGrid[n.gridX, n.gridY].current) {
+                            Gizmos.color = Color.gray;
+                            if (patrolManager.spreadGrid[n.gridX, n.gridY].dir == new Vector2Int(0,1)) Gizmos.color = new Color(1, 0, 0);
+                            else if (patrolManager.spreadGrid[n.gridX, n.gridY].dir == new Vector2Int(-1, 0)) Gizmos.color = new Color(0, 0, 1);
+                            else if (patrolManager.spreadGrid[n.gridX, n.gridY].dir == new Vector2Int(1, 0)) Gizmos.color = new Color(0, 1, 0);
+                            else if (patrolManager.spreadGrid[n.gridX, n.gridY].dir == new Vector2Int(0, -1)) Gizmos.color = new Color(0.5f, 0, 0);
+                            else if (patrolManager.spreadGrid[n.gridX, n.gridY].dir == new Vector2Int(-1, 1)) Gizmos.color = new Color(1, 0, 1);
+                            else if (patrolManager.spreadGrid[n.gridX, n.gridY].dir == new Vector2Int(1, 1)) Gizmos.color = new Color(1, 1, 0);
+                            else if (patrolManager.spreadGrid[n.gridX, n.gridY].dir == new Vector2Int(-1, -1)) Gizmos.color = new Color(0.5f, 0, 0.5f);
+                            else if (patrolManager.spreadGrid[n.gridX, n.gridY].dir == new Vector2Int(1, -1)) Gizmos.color = new Color(0.5f, 0.5f, 0f);
+                        } 
                         //if (patrolManager.spreadGrid[n.gridX, n.gridY].close) Gizmos.color = Color.black;
                         if (patrolManager.choosenNodeDic.ContainsKey(new Vector2Int(n.gridX, n.gridY))) {
-                            if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count > 2) {
+
+                            if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count > 2)
+                            {
                                 if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count == 3) Gizmos.color = new Color(1, 0, 1);
                                 else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count == 4) Gizmos.color = new Color(1, 0, 0);
-                                else  Gizmos.color = new Color(0, 1, 1);
+                                else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count == 5) Gizmos.color = new Color(0, 0, 1);
+                                else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count == 6) Gizmos.color = new Color(0, 0, 0);
+                                else Gizmos.color = new Color(0, 0, 0);
                             }
-                            else Gizmos.color = new Color(0, 1, 1);
+                            else {
+                                if(patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count == 2) Gizmos.color = new Color(0, 1, 1);
+                                else Gizmos.color = new Color(0, 1, 0);
+                            } 
                         }
                        
                         //if (patrolManager.confirmGraphNodeDic.ContainsKey(new Vector2Int(n.gridX, n.gridY)))
