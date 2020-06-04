@@ -92,6 +92,7 @@ public class PatrolManager : MonoBehaviour
     public SpreadNode connectNeighbor = null;
     public List<SpreadNode> waitNodes = new List<SpreadNode>();
     List<SpreadNode> endNodes = new List<SpreadNode>();
+    Dictionary<SpreadNode, List<SpreadNode>> mergeNodeDic = new Dictionary<SpreadNode, List<SpreadNode>>();
 
     bool skipRun = false;
 
@@ -225,6 +226,7 @@ public class PatrolManager : MonoBehaviour
                 node.dir = tiltSpread[i].dir;
                 node.choosen = true;
                 node.fromArea = tiltSpread[i].fromArea;
+                node.current = false;
 
                 //加鄰居
                 for (int n = choosenNode.Count - 1; n >= 0; n--)
@@ -259,7 +261,7 @@ public class PatrolManager : MonoBehaviour
                 spreadGrid[currentNode.x, currentNode.y].fromArea.Add(area.Name);
 
                 //當下這格已經是停止點 或 被選點
-                if (spreadGrid[currentNode.x, currentNode.y].choosen) //spreadGrid[currentNode.x, currentNode.y].stop || 
+                if (spreadGrid[currentNode.x, currentNode.y].choosen || spreadGrid[currentNode.x, currentNode.y].stop) //spreadGrid[currentNode.x, currentNode.y].stop || 
                 {
                     spreadGrid[currentNode.x, currentNode.y].current = false;
                     area.spreadGrids.Remove(area.spreadGridNmae[j]);
@@ -300,12 +302,12 @@ public class PatrolManager : MonoBehaviour
                         //下一格是障礙
                         else if (!spreadGrid[nextX, currentNode.y].walkable)
                         {
-                            //spreadGrid[nextX, currentNode.y].stop = true;
+                            spreadGrid[nextX, currentNode.y].stop = true;
                         }
                         //下一格是同名稱，且遇到方向是垂直的，通常是為了解決斜向擺放的方塊自己碰撞的問題
                         else if (spreadGrid[nextX, currentNode.y].fromArea.Contains(area.Name) && (spreadGrid[nextX, currentNode.y].dir.y != 0))
                         {
-
+                            spreadGrid[nextX, currentNode.y].stop = true;
                         }
                         //新增隔壁x方向節點
                         //前進方向互相撞到，存下來
@@ -363,12 +365,12 @@ public class PatrolManager : MonoBehaviour
                         //下一格是障礙
                         else if (!spreadGrid[currentNode.x, nextY].walkable)
                         {
-                            //spreadGrid[currentNode.x, nextY].stop = true;
+                            spreadGrid[currentNode.x, nextY].stop = true;
                         }
                         //下一格是同名稱，且遇到方向是水平的，通常是為了解決斜向擺放的方塊自己碰撞的問題
                         else if (spreadGrid[currentNode.x, nextY].fromArea.Contains(area.Name) && (spreadGrid[currentNode.x, nextY].dir.x != 0))
                         {
-
+                            spreadGrid[currentNode.x, nextY].stop = true;
                         }
                         //新增隔壁y方向節點
                         //前進方向互相撞到，存下來
@@ -425,6 +427,7 @@ public class PatrolManager : MonoBehaviour
                     //下一格是停止點
                     //else if (spreadGrid[nextX, nextY].stop)
                     //{
+                    //    spreadGrid[currentNode.x, currentNode.y].current = false;
                     //    area.spreadGrids.Remove(area.spreadGridNmae[j]);
                     //    area.spreadGridNmae.RemoveAt(j);
                     //}
@@ -443,10 +446,10 @@ public class PatrolManager : MonoBehaviour
                         area.spreadGridNmae.RemoveAt(j);
                         spreadGrid[currentNode.x, currentNode.y].stop = true;
                     }
-
                     //下一格同名稱且水平和垂直都沒有抵銷
                     else if (spreadGrid[nextX, nextY].fromArea.Contains(area.Name) && ((spreadGrid[nextX, nextY].dir.x + currentNode.direction.x != 0) && (spreadGrid[nextX, nextY].dir.y + currentNode.direction.y != 0))
-                            ) {
+                            )
+                    {
                         spreadGrid[currentNode.x, currentNode.y].current = false;
                         area.spreadGrids.Remove(area.spreadGridNmae[j]);
                         area.spreadGridNmae.RemoveAt(j);
@@ -501,7 +504,8 @@ public class PatrolManager : MonoBehaviour
                         }
                         else {
                             //延伸方向碰到另一方向斜邊，新增延伸
-                            if (extendTiltSpread) {
+                            if (extendTiltSpread)
+                            {
 
                                 //有兩個方向，等於有三個斜邊接壤，直接設為選擇點
                                 if (extendTiltSpreadVec2.sqrMagnitude > 1)
@@ -528,7 +532,8 @@ public class PatrolManager : MonoBehaviour
                                     area.spreadGridNmae.RemoveAt(j);
 
                                 }
-                                else {
+                                else
+                                {
                                     //只碰到單一斜邊，將下一點方向改成延伸
                                     spreadGrid[nextX, nextY].choosen = true;
                                     spreadGrid[nextX, nextY].pos = new Vector2Int(nextX, nextY);
@@ -561,174 +566,273 @@ public class PatrolManager : MonoBehaviour
                                     area.spreadGrids.Remove(area.spreadGridNmae[j]);
                                     area.spreadGridNmae.RemoveAt(j);
                                 }
-                                
+
                             }
                             //一般傳播點給下一格方向
-                            else spreadGrid[nextX, nextY].dir = currentNode.direction;
+                            else {
+                                spreadGrid[nextX, nextY].dir = currentNode.direction;
+                                spreadGrid[nextX, nextY].fromArea.Add(area.Name);
+                                spreadGrid[nextX, nextY].current = true;
+                            } 
                             currentNode.choosenWeight += PerSpreadWeight;
                         }
 
-                        //if (!hasC[currentNode.x, currentNode.y])
-                        //{
-                        //    spreadGrid[currentNode.x, currentNode.y].current = false;
-                        //}
+
                         spreadGrid[currentNode.x, currentNode.y].current = false;
-                        hasC[nextX, nextY] = true;
                         currentNode.x = nextX;
                         currentNode.y = nextY;
-                        //spreadGrid[nextX, nextY].dir = currentNode.direction;
-                        spreadGrid[nextX, nextY].fromArea.Add(area.Name);
-                        spreadGrid[nextX, nextY].current = true;
 
-                        area.hasCouculateNode[nextX, nextY] = true;
-                        area.couculateNodeDir[nextX, nextY] = currentNode.direction;
+                        
+
+                        //hasC[nextX, nextY] = true;
+                        //area.hasCouculateNode[nextX, nextY] = true;
+                        //area.couculateNodeDir[nextX, nextY] = currentNode.direction;
                     }
                 }
 
             }
         }
-        //if (skip)
-        //{
-        //    Debug.Log("計算末端點  " + choosenNode.Count);
-        //    List<Vector2Int> couculatedNodes = new List<Vector2Int>();
-        //    for (int i = choosenNode.Count - 1; i >= 0; i--)
-        //    {
+        if (skip)
+        {
+            Debug.Log("計算末端點  " + choosenNode.Count);
+            List<Vector2Int> couculatedNodes = new List<Vector2Int>();
+            List<SpreadNode> probablyEndNodes = new List<SpreadNode>();
 
-        //        SpreadNode node = choosenNode[i];
-        //        SpreadNode endNode = null;
 
-        //        //已經被算過是有碰撞的末端點，捨棄
-        //        if (couculatedNodes.Contains(node.pos))
-        //        {
-        //            Debug.Log("計算過  " + node.pos + " 捨棄");
-        //            node.choosen = false;
-        //            choosenNode.Remove(choosenNodeDic[node.pos]);
-        //            choosenNodeDic.Remove(node.pos);
-        //            couculatedNodes.Remove(node.pos);
-        //            continue;
-        //        }
+            for (int i = choosenNode.Count - 1; i >= 0; i--)
+            {
+                SpreadNode node = choosenNode[i];
+                SpreadNode endNode = null;
+                int count = 0;
+                int xNum = 0;
+                int yNum = 0;
+                Debug.Log("計算  " + choosenNode[i].pos + "  " + node.neighbor.Count);
 
-        //        Debug.Log("計算  " + choosenNode[i].pos + "  " + node.neighbor.Count);
+                //已經被算過是有碰撞的末端點，捨棄
+                if (couculatedNodes.Contains(node.pos))
+                {
+                    Debug.Log("計算過  " + node.pos + " 捨棄");
+                    //for (int j = node.neighbor.Count - 1; j >= 0; j--)
+                    //{
+                    //    if(node.neighbor[j].neighbor.Contains(node))node.neighbor[j].neighbor.Remove(node);
+                    //}
+                    //node.choosen = false;
+                    //choosenNode.Remove(choosenNodeDic[node.pos]);
+                    //choosenNodeDic.Remove(node.pos);
+                    //couculatedNodes.Remove(node.pos);
 
-        //        int count = 0;
-        //        int xNum = 0;
-        //        int yNum = 0;
-        //        for (int j = node.neighbor.Count - 1; j >= 0; j--)
-        //        {
-        //            xNum += (node.neighbor[j].pos.x - node.pos.x);
-        //            yNum += (node.neighbor[j].pos.y - node.pos.y);
-        //            count++;
-        //            Debug.Log("鄰居有  " + node.neighbor[j].pos);
-        //        }
-        //        if (count == 0)
-        //        {
-        //            choosenNode.RemoveAt(i);
-        //            choosenNodeDic.Remove(node.pos);
-        //        }
-        //        else if (count == 1)
-        //        {
-        //            Debug.Log("個數1 末端 ");
-        //            endNode = node;
-        //        }
-        //        //有多個鄰居的末端，方向不會抵銷
-        //        else if (count == 2 && (Mathf.Abs(xNum) >= 2 || Mathf.Abs(yNum) >= 2))
-        //        {
-        //            Debug.Log("個數多 末端 ");
-        //            endNode = node;
-        //        }
+                    continue;
+                }
 
-        //        List<SpreadNode> waitNodes = new List<SpreadNode>();
-        //        int breakNum = 0;
-        //        while (endNode != null)
-        //        {
-        //            breakNum++;
-        //            if (breakNum > 9999) break;
+                for (int j = 0; j < node.neighbor.Count; j++)
+                {
+                    xNum += (node.neighbor[j].pos.x - node.pos.x);
+                    yNum += (node.neighbor[j].pos.y - node.pos.y);
+                    count++;
+                    Debug.Log("鄰居有  " + node.neighbor[j].pos);
+                }
+                if (count == 0)
+                {
+                    //choosenNode.RemoveAt(i);
+                    //choosenNodeDic.Remove(node.pos);
+                    couculatedNodes.Add(node.pos);
+                }
+                else if (count == 1)
+                {
+                    Debug.Log("個數1 末端 ");
+                    endNode = node;
+                }
+                //有多個鄰居的末端，方向不會抵銷
+                else if (count == 2 && (Mathf.Abs(xNum) >= 2 || Mathf.Abs(yNum) >= 2))
+                {
+                    Debug.Log("個數多 末端 ");
+                    endNode = node;
+                }
 
-        //            if (endNode.neighbor.Count > 2)
-        //            {
-        //                for (int j = endNode.neighbor.Count - 1; j >= 0; j--)
-        //                {
-        //                    if (!couculatedNodes.Contains(endNode.neighbor[j].pos)) {
-        //                        xNum += (endNode.neighbor[j].pos.x - endNode.pos.x);
-        //                        yNum += (endNode.neighbor[j].pos.y - endNode.pos.y);
-        //                    }
-        //                    xNum += (endNode.neighbor[j].pos.x - endNode.pos.x);
-        //                    yNum += (endNode.neighbor[j].pos.y - endNode.pos.y);
-        //                    count++;
-        //                    Debug.Log("鄰居有  " + endNode.neighbor[j].pos);
-        //                    if (!waitNodes.Contains(endNode.neighbor[j]) && !couculatedNodes.Contains(endNode.neighbor[j].pos)) waitNodes.Add(endNode.neighbor[j]);
-        //                }
-        //                if (Mathf.Abs(xNum) >= 2 || Mathf.Abs(yNum) >= 2)
-        //                {
-        //                    couculatedNodes.Add(endNode.pos);
-        //                }
-        //                endNode = null;
-        //            }
-        //            else
-        //            {
-        //                Vector3 pos = pathFindGrid.GetNodePos(endNode.pos.x, endNode.pos.y);
-        //                Vector3 VStart = pos + new Vector3(0, 0, closeDstNum);
-        //                Vector3 VEnd = pos + new Vector3(0, 0, -closeDstNum);
-        //                Vector3 HStart = pos + new Vector3(closeDstNum, 0, 0);
-        //                Vector3 HEnd = pos + new Vector3(-closeDstNum, 0, 0);
-        //                Debug.Log(endNode.pos + " :  " + VStart + " ---- " + VEnd + "  " + Physics.Linecast(VStart, VEnd, 1 << LayerMask.NameToLayer("Obstacle")));
-        //                Debug.Log(endNode.pos + " :  " + HStart + " ---- " + HEnd + "  " + Physics.Linecast(VStart, VEnd, 1 << LayerMask.NameToLayer("Obstacle")));
+                List<SpreadNode> waitNodes = new List<SpreadNode>();
+                int breakNum = 0;
+                while (endNode != null)
+                {
+                    Debug.Log(" 開始計算 " + endNode.pos + " 的分支");
+                    breakNum++;
+                    if (breakNum > 9999) break;
 
-        //                couculatedNodes.Add(endNode.pos);
-        //                for (int w = 0; w < endNode.neighbor.Count; w++)
-        //                {
-        //                    if (!waitNodes.Contains(endNode.neighbor[w]) && !couculatedNodes.Contains(endNode.neighbor[w].pos)) waitNodes.Add(endNode.neighbor[w]);
-        //                }
-        //                if (waitNodes.Count > 0)
-        //                {
-        //                    endNode = waitNodes[0];
-        //                    waitNodes.RemoveAt(0);
-        //                }
-        //                else
-        //                {
-        //                    endNode = null;
-        //                }
+                    if (endNode.neighbor.Count <= 1)
+                    {
+                        
+                        if (endNode.neighbor.Count == 0) {
+                            Debug.Log("分支盡頭");
+                            couculatedNodes.Add(endNode.pos);
+                            endNode = null;
+                        } 
+                        else {
+                            Debug.Log(endNode.pos + " 有一個鄰居 " + endNode.neighbor[0].pos);
+                            endNode.neighbor[0].neighbor.Remove(endNode);
+                            couculatedNodes.Add(endNode.pos);
+                            if (!probablyEndNodes.Contains(endNode.neighbor[0])) {
+                                Debug.Log("鄰居 " + endNode.neighbor[0].pos + "  鄰居為下一個計算點");
+                                endNode = endNode.neighbor[0];
+                            } 
+                            else {
+                                Debug.Log("鄰居 " + endNode.neighbor[0].pos + "  為分支末端");
+                                endNode = null;
+                            } 
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log(endNode.pos + " 有多個鄰居");
+                        count = 0;
+                        xNum = 0;
+                        yNum = 0;
+                        for (int j = endNode.neighbor.Count - 1; j >= 0; j--)
+                        {
+                            if (!couculatedNodes.Contains(endNode.neighbor[j].pos))
+                            {
+                                xNum += (endNode.neighbor[j].pos.x - endNode.pos.x);
+                                yNum += (endNode.neighbor[j].pos.y - endNode.pos.y);
+                                count++;
+                                Debug.Log(endNode.pos + " 有多個鄰居  " + endNode.neighbor[j].pos);
+                            }
+                        }
+                        if ((Mathf.Abs(xNum) >= 2 || Mathf.Abs(yNum) >= 2))
+                        {
+                            Debug.Log("兩個鄰居形成末端  " + endNode.pos);
+                            couculatedNodes.Add(endNode.pos);
+                            for (int j = endNode.neighbor.Count - 1; j >= 0; j--)
+                            {
+                                if (!waitNodes.Contains(endNode.neighbor[j]) && !couculatedNodes.Contains(endNode.neighbor[j].pos))
+                                {
+                                    endNode.neighbor[j].neighbor.Remove(endNode);
+                                    if(!probablyEndNodes.Contains(endNode.neighbor[j]))probablyEndNodes.Add(endNode.neighbor[j]);
+                                    if (endNode.neighbor[j].neighbor.Count == 0) endNode.neighbor.RemoveAt(j);
+                                    //if (endNode.neighbor[j].neighbor.Count >= 2) waitNodes.Add(endNode.neighbor[j]);
+                                    //else if (endNode.neighbor[j].neighbor.Count == 1) probablyEndNodes.Add(endNode.neighbor[j]);
+                                }
+                            }
+                        }
+                        else {
+                            probablyEndNodes.Add(endNode);
+                        }
+                        if (waitNodes.Count > 0)
+                        {
+                            endNode = waitNodes[0];
+                            waitNodes.RemoveAt(0);
+                        }
+                        else
+                        {
+                            endNode = null;
+                        }
+                    }
+                }
+            }
 
-        //                //if (Physics.Linecast(VStart, VEnd, 1 << LayerMask.NameToLayer("Obstacle")) || Physics.Linecast(HStart, HEnd, 1 << LayerMask.NameToLayer("Obstacle")))
-        //                //{
-        //                //    couculatedNodes.Add(endNode.pos);
-        //                //    for (int w = 0; w < endNode.neighbor.Count; w++)
-        //                //    {
-        //                //        if (!waitNodes.Contains(endNode.neighbor[w]) && !couculatedNodes.Contains(endNode.neighbor[w].pos)) waitNodes.Add(endNode.neighbor[w]);
-        //                //    }
-        //                //    if (waitNodes.Count > 0)
-        //                //    {
-        //                //        endNode = waitNodes[0];
-        //                //        waitNodes.RemoveAt(0);
-        //                //    }
-        //                //    else
-        //                //    {
-        //                //        endNode = null;
-        //                //    }
-        //                //}
-        //                //else
-        //                //{
-        //                //    endNode.endNode = true;
-        //                //    endNode = null;
-        //                //}
-        //            }
+            for (int i = couculatedNodes.Count - 1; i >= 0; i--)
+            {
+                //已經被算過是有碰撞的末端點，捨棄
+                Debug.Log("計算過  " + couculatedNodes[i] + " 捨棄");
+                choosenNodeDic[couculatedNodes[i]].choosen = false;
+                if (probablyEndNodes.Contains(choosenNodeDic[couculatedNodes[i]])) probablyEndNodes.Remove(choosenNodeDic[couculatedNodes[i]]);
+                choosenNode.Remove(choosenNodeDic[couculatedNodes[i]]);
+                choosenNodeDic.Remove(couculatedNodes[i]);
 
-        //        }
-        //    }
-        //    for (int i = couculatedNodes.Count - 1; i >= 0; i--)
-        //    {
-        //        //已經被算過是有碰撞的末端點，捨棄
-        //        Debug.Log("計算過  " + couculatedNodes[i] + " 捨棄");
-        //        choosenNodeDic[couculatedNodes[i]].choosen = false;
-        //        choosenNode.Remove(choosenNodeDic[couculatedNodes[i]]);
-        //        choosenNodeDic.Remove(couculatedNodes[i]);
-        //    }
-        //}
+            }
+            couculatedNodes.Clear();
+            waitNodes.Clear();
+
+
+            for (int i = probablyEndNodes.Count - 1; i >= 0; i--)
+            {
+                if (couculatedNodes.Contains(probablyEndNodes[i].pos)) continue;
+
+                //可能是末端點的交錯點
+                SpreadNode endNode = probablyEndNodes[i];
+                int breakNum = 0;
+                while (endNode != null)
+                {
+                    breakNum++;
+                    if (breakNum > 9999) break;
+                    Vector3 pos = pathFindGrid.GetNodePos(endNode.pos.x, endNode.pos.y);
+                    Vector3 VStart = pos + new Vector3(0, 0, closeDstNum);
+                    Vector3 VEnd = pos + new Vector3(0, 0, -closeDstNum);
+                    Vector3 HStart = pos + new Vector3(closeDstNum, 0, 0);
+                    Vector3 HEnd = pos + new Vector3(-closeDstNum, 0, 0);
+                    if (Physics.Linecast(VStart, VEnd, 1 << LayerMask.NameToLayer("Obstacle")) || Physics.Linecast(HStart, HEnd, 1 << LayerMask.NameToLayer("Obstacle")))
+                    {
+                        int count = 0;
+                        int xNum = 0;
+                        int yNum = 0;
+                        for (int j = 0; j < endNode.neighbor.Count; j++)
+                        {
+                            xNum += (endNode.neighbor[j].pos.x - endNode.pos.x);
+                            yNum += (endNode.neighbor[j].pos.y - endNode.pos.y);
+                            count++;
+                        }
+                        if ((Mathf.Abs(xNum) >= 2 || Mathf.Abs(yNum) >= 2))
+                        {
+                            couculatedNodes.Add(endNode.pos);
+                            for (int j = 0; j < endNode.neighbor.Count; j++)
+                            {
+                                endNode.neighbor[j].neighbor.Remove(endNode);
+                                if (!couculatedNodes.Contains(endNode.neighbor[j].pos) && !waitNodes.Contains(endNode.neighbor[j]))
+                                {
+                                    waitNodes.Add(endNode.neighbor[j]);
+                                }
+                            }
+                        }
+                        if (waitNodes.Count > 0)
+                        {
+                            endNode = waitNodes[0];
+                            waitNodes.RemoveAt(0);
+                        }
+                        else
+                        {
+                            endNode = null;
+                        }
+                        //couculatedNodes.Add(endNode.pos);
+                        //for (int j = 0; j < endNode.neighbor.Count; j++)
+                        //{
+                        //    endNode.neighbor[j].neighbor.Remove(endNode);
+                        //    if (!couculatedNodes.Contains(endNode.neighbor[j].pos))
+                        //    {
+                        //        if (endNode.neighbor[j].neighbor.Count <= 1)
+                        //        {
+                        //            endNode = endNode.neighbor[j];
+                        //        }
+                        //        else endNode = null;
+                        //    }
+                        //}
+                    }
+                    else
+                    {
+                        endNode.endNode = true;
+                        endNode = null;
+                    }
+                    //if (waitNodes.Count > 0)
+                    //{
+                    //    endNode = waitNodes[0];
+                    //    waitNodes.RemoveAt(0);
+                    //}
+                    //else
+                    //{
+                    //    endNode = null;
+                    //}
+                }
+            }
+            for (int i = couculatedNodes.Count - 1; i >= 0; i--)
+            {
+                //已經被算過是有碰撞的末端點，捨棄
+                Debug.Log("計算過  " + couculatedNodes[i] + " 捨棄");
+                choosenNodeDic[couculatedNodes[i]].choosen = false;
+                choosenNode.Remove(choosenNodeDic[couculatedNodes[i]]);
+                choosenNodeDic.Remove(couculatedNodes[i]);
+            }
+        }
 
         if (skip)
         {
-            CouculateGraphCross();
-            CouculateGraphTurn();
+            //CouculateGraphCross();
+            //CouculateGraphTurn();
         }
 
     }
@@ -871,193 +975,260 @@ public class PatrolManager : MonoBehaviour
                 graphNodeDic.Add(choosenNode[i].pos, node);
                 choosenNode[i].crossNode = true;
 
+                SpreadNode detectNode;
+                List<SpreadNode> waitMergeNodes = new List<SpreadNode>();
+
                 for (int j = 0; j < choosenNode[i].neighbor.Count; j++)
                 {
-                    if (choosenNode[i].pos.x == 31 && choosenNode[i].pos.y == 73) Debug.Log("neighbor  " + choosenNode[i].neighbor[j].pos);
 
-                    Vector2Int detectPos = choosenNode[i].neighbor[j].pos;
-                    Vector2Int diff = detectPos - choosenNode[i].pos;
-                    count++;
-                    xNum += diff.x;
-                    yNum += diff.y;
-                    couculateNum += Mathf.Abs(diff.x);
-                    couculateNum += Mathf.Abs(diff.y);
-                    Debug.Log(choosenNode[i].pos + "couculate  第 " + j +"個 "  + detectPos.x + "," + detectPos.y + " num " + xNum + "," + yNum);
+                    //if (choosenNode[i].pos.x == 31 && choosenNode[i].pos.y == 73) Debug.Log("neighbor  " + choosenNode[i].neighbor[j].pos);
 
-                    //鄰居是交錯點
-                    if (choosenNode[i].neighbor[j].neighbor.Count > 2 || choosenNode[i].neighbor[j].beenMerged)
+                    //Vector2Int detectPos = choosenNode[i].neighbor[j].pos;
+                    //Vector2Int diff = detectPos - choosenNode[i].pos;
+                    //count++;
+                    //xNum += diff.x;
+                    //yNum += diff.y;
+                    //couculateNum += Mathf.Abs(diff.x);
+                    //couculateNum += Mathf.Abs(diff.y);
+                    //Debug.Log(choosenNode[i].pos + "couculate  第 " + j +"個 "  + detectPos.x + "," + detectPos.y + " num " + xNum + "," + yNum);
+
+                    ////鄰居是交錯點
+                    //if (choosenNode[i].neighbor[j].neighbor.Count > 2 || choosenNode[i].neighbor[j].beenMerged)
+                    //{
+                    //    choosenNode[i].neighbor[j].crossNode = true;
+                    //    //鄰居是單純交錯點
+                    //    if (!choosenNode[i].neighbor[j].beenMerged)
+                    //    {
+                    //        //自己不是合併點，建立新合併點
+                    //        if (!choosenNode[i].beenMerged)
+                    //        {
+                    //            Debug.Log("自己不是合併點，建立新合併點  加入 " + choosenNode[i].neighbor[j].pos);
+                    //            choosenNode[i].beenMerged = true;
+                    //            choosenNode[i].neighbor[j].beenMerged = true;
+                    //            mergeNode = new SpreadNode();
+                    //            mergeNode.mergeCount = 2;
+                    //            mergeNode.pos += choosenNode[i].pos;
+                    //            mergeNode.pos += choosenNode[i].neighbor[j].pos;
+                    //            choosenNode[i].mergeNode = mergeNode;
+                    //            choosenNode[i].neighbor[j].mergeNode = mergeNode;
+
+                    //            //先將合併點鄰居清單設為鄰居的鄰居清單
+                    //            //mergeNode.neighbor = choosenNode[i].neighbor[j].neighbor;
+
+                    //            bool notCross = false;
+                    //            //增加鄰居的鄰居進合併點鄰居，鄰居必須不為被合併且不為交錯點
+                    //            for (int m = 0; m < choosenNode[i].neighbor[j].neighbor.Count; m++)
+                    //            {
+
+                    //                if (choosenNode[i].neighbor[j].neighbor[m].beenMerged)
+                    //                {
+
+                    //                }
+                    //                else {
+                    //                    //將沒加如過的加進鄰居清單
+                    //                    if (choosenNode[i].neighbor[j].neighbor[m].neighbor.Count <= 2 && !choosenNode[i].neighbor[j].neighbor[m].beenMerged &&
+                    //                        !mergeNode.neighbor.Contains(choosenNode[i].neighbor[j].neighbor[m]))
+                    //                    {
+                    //                        mergeNode.neighbor.Add(choosenNode[i].neighbor[j].neighbor[m]);
+                    //                    }
+                    //                }
+
+                    //            }
+                    //            //增加自己的鄰居進合併點鄰居
+                    //            for (int m = 0; m < choosenNode[i].neighbor.Count; m++)
+                    //            {
+                    //                if (!choosenNode[i].neighbor[m].beenMerged && choosenNode[i].neighbor[m].neighbor.Count <= 2)
+                    //                {
+                    //                    if (!mergeNode.neighbor.Contains(choosenNode[i].neighbor[m]))
+                    //                    {
+                    //                        mergeNode.neighbor.Add(choosenNode[i].neighbor[m]);
+                    //                    }
+                    //                    //同為兩合併點的鄰居
+                    //                    else
+                    //                    {
+                    //                        //沒有其他分支，不為交錯點，移除合併點和該點
+                    //                        Debug.Log("移除 " + choosenNode[i].neighbor[m].pos);
+                    //                        SpreadNode removeNode = choosenNode[i].neighbor[m];
+
+                    //                        choosenNode[i].crossNode = false;
+                    //                        choosenNode[i].beenMerged = false;
+
+                    //                        choosenNode[i].neighbor[j].crossNode = false;
+                    //                        choosenNode[i].neighbor[j].beenMerged = false;
+
+                    //                        choosenNode[i].neighbor[m].choosen = false;
+
+                    //                        choosenNode[i].neighbor[j].neighbor.Remove(choosenNode[i].neighbor[m]);
+                    //                        choosenNode[i].neighbor.RemoveAt(m);
+
+                    //                        mergeNode.mergeCount = 0;
+                    //                        mergeNode.neighbor.Clear();
+
+                    //                        notCross = true;
+
+                    //                        Debug.Log(choosenNode[i].pos + " 剩餘鄰居 " + choosenNode[i].neighbor.Count);
+                    //                        Debug.Log(choosenNode[i].neighbor[j].pos + " 剩餘鄰居 " + choosenNode[i].neighbor[j].neighbor.Count);
+                    //                        break;
+                    //                    }
+                    //                }
+                    //            }
+                    //            if (notCross) break;
+
+                    //            //移除合併點鄰居中的自己
+                    //            if (mergeNode.neighbor.Contains(choosenNode[i])) mergeNode.neighbor.Remove(choosenNode[i]);
+
+                    //            //choosenNode[i].neighbor = mergeNode.neighbor;
+                    //            choosenNode[i].neighbor[j].neighbor = mergeNode.neighbor;
+                    //        }
+                    //        //自己是合併點，納入鄰居
+                    //        else
+                    //        {
+                    //            Debug.Log("自己是合併點，納入鄰居  加入 " + choosenNode[i].neighbor[j]);
+                    //            choosenNode[i].neighbor[j].beenMerged = true;
+                    //            mergeNode = choosenNode[i].mergeNode;
+                    //            mergeNode.mergeCount++;
+                    //            mergeNode.pos += choosenNode[i].neighbor[j].pos;
+                    //            choosenNode[i].neighbor[j].mergeNode = mergeNode;
+                    //            //增加鄰居的鄰居清單進合併點鄰居
+                    //            for (int m = 0; m < choosenNode[i].neighbor[j].neighbor.Count; m++)
+                    //            {
+                    //                if (choosenNode[i].neighbor[j].neighbor[m].neighbor.Count <= 2 && !choosenNode[i].neighbor[j].neighbor[m].beenMerged &&
+                    //                    !mergeNode.neighbor.Contains(choosenNode[i].neighbor[j].neighbor[m]))
+                    //                {
+                    //                    mergeNode.neighbor.Add(choosenNode[i].neighbor[j].neighbor[m]);
+                    //                }
+                    //            }
+                    //            //移除合併點鄰居清單中的鄰居
+                    //            if (mergeNode.neighbor.Contains(choosenNode[i].neighbor[j])) mergeNode.neighbor.Remove(choosenNode[i].neighbor[j]);
+
+                    //            //choosenNode[i].neighbor = mergeNode.neighbor;
+                    //            choosenNode[i].neighbor[j].neighbor = mergeNode.neighbor;
+                    //        }
+                    //    }
+                    //    //鄰居是合併點
+                    //    else
+                    //    {
+                    //        //自己不是合併點，加進合併點
+                    //        if (!choosenNode[i].beenMerged)
+                    //        {
+                    //            Debug.Log("自己不是合併點，加進合併點");
+                    //            mergeNode = choosenNode[i].neighbor[j].mergeNode;
+                    //            mergeNode.mergeCount++;
+                    //            mergeNode.pos += choosenNode[i].pos;
+                    //            choosenNode[i].mergeNode = mergeNode;
+                    //            choosenNode[i].beenMerged = true;
+
+                    //            //移除合併點鄰居中的自己
+                    //            if (mergeNode.neighbor.Contains(choosenNode[i])) mergeNode.neighbor.Remove(choosenNode[i]);
+                    //            //增加自己的鄰居進合併點鄰居
+                    //            for (int m = 0; m < choosenNode[i].neighbor.Count; m++)
+                    //            {
+                    //                if (choosenNode[i].neighbor[m].neighbor.Count <= 2 && !choosenNode[i].neighbor[m].beenMerged &&
+                    //                    !mergeNode.neighbor.Contains(choosenNode[i].neighbor[m]))
+                    //                {
+                    //                    mergeNode.neighbor.Add(choosenNode[i].neighbor[m]);
+                    //                }
+                    //            }
+
+                    //            //choosenNode[i].neighbor = mergeNode.neighbor;
+                    //            choosenNode[i].neighbor[j].neighbor = mergeNode.neighbor;
+                    //        }
+                    //        else
+                    //        {
+                    //            Debug.Log("自己是合併點，並確認是不是不同的合併點，將兩個合併點整合");
+                    //            //自己是合併點，並確認是不是不同的合併點，將兩個合併點整合
+                    //            if (!choosenNode[i].neighbor[j].mergeNode.Equals(choosenNode[i].mergeNode))
+                    //            {
+                    //                mergeNode = choosenNode[i].neighbor[j].mergeNode;
+                    //                mergeNode.mergeCount += choosenNode[i].mergeNode.mergeCount;
+                    //                mergeNode.pos += choosenNode[i].mergeNode.pos;
+                    //                //移除合併點鄰居中的自己
+                    //                if (mergeNode.neighbor.Contains(choosenNode[i])) mergeNode.neighbor.Remove(choosenNode[i]);
+                    //                //增加自己的合併點鄰居進合併點鄰居
+                    //                for (int m = 0; m < choosenNode[i].mergeNode.neighbor.Count; m++)
+                    //                {
+                    //                    if (choosenNode[i].mergeNode.neighbor[m].neighbor.Count <= 2 && !choosenNode[i].mergeNode.neighbor[m].beenMerged &&
+                    //                        !mergeNode.neighbor.Contains(choosenNode[i].mergeNode.neighbor[m]))
+                    //                    {
+                    //                        mergeNode.neighbor.Add(choosenNode[i].mergeNode.neighbor[m]);
+                    //                    }
+                    //                }
+                    //                //choosenNode[i].neighbor = mergeNode.neighbor;
+                    //                choosenNode[i].neighbor[j].neighbor = mergeNode.neighbor;
+                    //                choosenNode[i].mergeNode.pos = mergeNode.pos;
+                    //                choosenNode[i].mergeNode.mergeCount = mergeNode.mergeCount;
+                    //                choosenNode[i].mergeNode.neighbor = mergeNode.neighbor;
+                    //            }
+                    //        }
+                    //    }
+                    //}
+                    //else Debug.Log("鄰居不為交錯點");
+
+
+                    if (choosenNode[i].neighbor[j].neighbor.Count > 2)
                     {
-                        choosenNode[i].neighbor[j].crossNode = true;
-                        //鄰居是單純交錯點
-                        if (!choosenNode[i].neighbor[j].beenMerged)
-                        {
-                            //自己不是合併點，建立新合併點
-                            if (!choosenNode[i].beenMerged)
-                            {
-                                Debug.Log("自己不是合併點，建立新合併點  加入 " + choosenNode[i].neighbor[j].pos);
-                                choosenNode[i].beenMerged = true;
-                                choosenNode[i].neighbor[j].beenMerged = true;
-                                mergeNode = new SpreadNode();
-                                mergeNode.mergeCount = 2;
-                                mergeNode.pos += choosenNode[i].pos;
-                                mergeNode.pos += choosenNode[i].neighbor[j].pos;
-                                choosenNode[i].mergeNode = mergeNode;
-                                choosenNode[i].neighbor[j].mergeNode = mergeNode;
-
-                                //先將合併點鄰居清單設為鄰居的鄰居清單
-                                //mergeNode.neighbor = choosenNode[i].neighbor[j].neighbor;
-
-                                bool notCross = false;
-                                //增加鄰居的鄰居進合併點鄰居，鄰居必須不為被合併且不為交錯點
-                                for (int m = 0; m < choosenNode[i].neighbor[j].neighbor.Count; m++)
-                                {
-
-                                    if (choosenNode[i].neighbor[j].neighbor[m].beenMerged)
-                                    {
-
-                                    }
-                                    else {
-                                        //將沒加如過的加進鄰居清單
-                                        if (choosenNode[i].neighbor[j].neighbor[m].neighbor.Count <= 2 && !choosenNode[i].neighbor[j].neighbor[m].beenMerged &&
-                                            !mergeNode.neighbor.Contains(choosenNode[i].neighbor[j].neighbor[m]))
-                                        {
-                                            mergeNode.neighbor.Add(choosenNode[i].neighbor[j].neighbor[m]);
-                                        }
-                                    }
-                                   
-                                }
-                                //增加自己的鄰居進合併點鄰居
-                                for (int m = 0; m < choosenNode[i].neighbor.Count; m++)
-                                {
-                                    if (!choosenNode[i].neighbor[m].beenMerged && choosenNode[i].neighbor[m].neighbor.Count <= 2)
-                                    {
-                                        if (!mergeNode.neighbor.Contains(choosenNode[i].neighbor[m]))
-                                        {
-                                            mergeNode.neighbor.Add(choosenNode[i].neighbor[m]);
-                                        }
-                                        //同為兩合併點的鄰居
-                                        else
-                                        {
-                                            //沒有其他分支，不為交錯點，移除合併點和該點
-                                            Debug.Log("移除 " + choosenNode[i].neighbor[m].pos);
-                                            SpreadNode removeNode = choosenNode[i].neighbor[m];
-
-                                            choosenNode[i].crossNode = false;
-                                            choosenNode[i].beenMerged = false;
-
-                                            choosenNode[i].neighbor[j].crossNode = false;
-                                            choosenNode[i].neighbor[j].beenMerged = false;
-
-                                            choosenNode[i].neighbor[m].choosen = false;
-
-                                            choosenNode[i].neighbor[j].neighbor.Remove(choosenNode[i].neighbor[m]);
-                                            choosenNode[i].neighbor.RemoveAt(m);
-
-                                            mergeNode.mergeCount = 0;
-                                            mergeNode.neighbor.Clear();
-
-                                            notCross = true;
-
-                                            Debug.Log(choosenNode[i].pos + " 剩餘鄰居 " + choosenNode[i].neighbor.Count);
-                                            Debug.Log(choosenNode[i].neighbor[j].pos + " 剩餘鄰居 " + choosenNode[i].neighbor[j].neighbor.Count);
-                                            break;
-                                        }
-                                    }
-                                }
-                                if (notCross) break;
-
-                                //移除合併點鄰居中的自己
-                                if (mergeNode.neighbor.Contains(choosenNode[i])) mergeNode.neighbor.Remove(choosenNode[i]);
-
-                                //choosenNode[i].neighbor = mergeNode.neighbor;
-                                choosenNode[i].neighbor[j].neighbor = mergeNode.neighbor;
+                        if (!choosenNode[i].neighbor[j].beenMerged && !waitMergeNodes.Contains(choosenNode[i].neighbor[j])) {
+                            choosenNode[i].mergeNode = mergeNode;
+                            choosenNode[i].neighbor[j].mergeNode = mergeNode;
+                            choosenNode[i].beenMerged = true;
+                            choosenNode[i].neighbor[j].beenMerged= true;
+                            mergeNode.mergeCount = 2;
+                            if (!mergeNodeDic.ContainsKey(mergeNode)) {
+                                List<SpreadNode> allMergeNode = new List<SpreadNode>();
+                                allMergeNode.Add(choosenNode[i]);
+                                allMergeNode.Add(choosenNode[i].neighbor[j]);
+                                mergeNodeDic.Add(mergeNode, allMergeNode);
                             }
-                            //自己是合併點，納入鄰居
-                            else
-                            {
-                                Debug.Log("自己是合併點，納入鄰居  加入 " + choosenNode[i].neighbor[j]);
-                                choosenNode[i].neighbor[j].beenMerged = true;
-                                mergeNode = choosenNode[i].mergeNode;
-                                mergeNode.mergeCount++;
-                                mergeNode.pos += choosenNode[i].neighbor[j].pos;
-                                choosenNode[i].neighbor[j].mergeNode = mergeNode;
-                                //增加鄰居的鄰居清單進合併點鄰居
-                                for (int m = 0; m < choosenNode[i].neighbor[j].neighbor.Count; m++)
-                                {
-                                    if (choosenNode[i].neighbor[j].neighbor[m].neighbor.Count <= 2 && !choosenNode[i].neighbor[j].neighbor[m].beenMerged &&
-                                        !mergeNode.neighbor.Contains(choosenNode[i].neighbor[j].neighbor[m]))
-                                    {
-                                        mergeNode.neighbor.Add(choosenNode[i].neighbor[j].neighbor[m]);
-                                    }
-                                }
-                                //移除合併點鄰居清單中的鄰居
-                                if (mergeNode.neighbor.Contains(choosenNode[i].neighbor[j])) mergeNode.neighbor.Remove(choosenNode[i].neighbor[j]);
+                            else {
+                                mergeNodeDic[mergeNode].Add(choosenNode[i].neighbor[j]);
+                            }
+                            waitMergeNodes.Add(choosenNode[i].neighbor[j]);
+                        }
+                    }
+                    else
+                    {
+                        if (!mergeNode.neighbor.Contains(choosenNode[i].neighbor[j]))
+                        {
+                            mergeNode.neighbor.Add(choosenNode[i].neighbor[j]);
+                        }
+                    }
 
-                                //choosenNode[i].neighbor = mergeNode.neighbor;
-                                choosenNode[i].neighbor[j].neighbor = mergeNode.neighbor;
+                }
+                //將自己的鄰居設為合併點鄰居
+                //if (mergeNode.mergeCount > 0)choosenNode[i].neighbor = mergeNode.neighbor;
+
+                int breakNum = 0;
+                while (waitMergeNodes.Count > 0) {
+                    breakNum++;
+                    if (breakNum >= 99999) break;
+                    for (int n = 0; n < waitMergeNodes[0].neighbor.Count; n++) {
+                        if ( waitMergeNodes[0].neighbor[n].neighbor.Count > 2)
+                        {
+                            if (!waitMergeNodes[0].neighbor[n].beenMerged && !waitMergeNodes.Contains(waitMergeNodes[0].neighbor[n])) {
+                                mergeNode.mergeCount++;
+                                waitMergeNodes[0].neighbor[n].beenMerged = true;
+                                waitMergeNodes[0].neighbor[n].mergeNode = mergeNode;
+                                mergeNodeDic[mergeNode].Add(waitMergeNodes[0].neighbor[n]);
+                                waitMergeNodes.Add(waitMergeNodes[0].neighbor[n]);
                             }
                         }
-                        //鄰居是合併點
-                        else
-                        {
-                            //自己不是合併點，加進合併點
-                            if (!choosenNode[i].beenMerged)
+                        else {
+                            if (!mergeNode.neighbor.Contains(waitMergeNodes[0].neighbor[n]))
                             {
-                                Debug.Log("自己不是合併點，加進合併點");
-                                mergeNode = choosenNode[i].neighbor[j].mergeNode;
-                                mergeNode.mergeCount++;
-                                mergeNode.pos += choosenNode[i].pos;
-                                choosenNode[i].mergeNode = mergeNode;
-                                choosenNode[i].beenMerged = true;
-
-                                //移除合併點鄰居中的自己
-                                if (mergeNode.neighbor.Contains(choosenNode[i])) mergeNode.neighbor.Remove(choosenNode[i]);
-                                //增加自己的鄰居進合併點鄰居
-                                for (int m = 0; m < choosenNode[i].neighbor.Count; m++)
-                                {
-                                    if (choosenNode[i].neighbor[m].neighbor.Count <= 2 && !choosenNode[i].neighbor[m].beenMerged &&
-                                        !mergeNode.neighbor.Contains(choosenNode[i].neighbor[m]))
-                                    {
-                                        mergeNode.neighbor.Add(choosenNode[i].neighbor[m]);
-                                    }
-                                }
-
-                                //choosenNode[i].neighbor = mergeNode.neighbor;
-                                choosenNode[i].neighbor[j].neighbor = mergeNode.neighbor;
-                            }
-                            else
-                            {
-                                Debug.Log("自己是合併點，並確認是不是不同的合併點，將兩個合併點整合");
-                                //自己是合併點，並確認是不是不同的合併點，將兩個合併點整合
-                                if (!choosenNode[i].neighbor[j].mergeNode.Equals(choosenNode[i].mergeNode))
-                                {
-                                    mergeNode = choosenNode[i].neighbor[j].mergeNode;
-                                    mergeNode.mergeCount += choosenNode[i].mergeNode.mergeCount;
-                                    mergeNode.pos += choosenNode[i].mergeNode.pos;
-                                    //移除合併點鄰居中的自己
-                                    if (mergeNode.neighbor.Contains(choosenNode[i])) mergeNode.neighbor.Remove(choosenNode[i]);
-                                    //增加自己的合併點鄰居進合併點鄰居
-                                    for (int m = 0; m < choosenNode[i].mergeNode.neighbor.Count; m++)
-                                    {
-                                        if (choosenNode[i].mergeNode.neighbor[m].neighbor.Count <= 2 && !choosenNode[i].mergeNode.neighbor[m].beenMerged &&
-                                            !mergeNode.neighbor.Contains(choosenNode[i].mergeNode.neighbor[m]))
-                                        {
-                                            mergeNode.neighbor.Add(choosenNode[i].mergeNode.neighbor[m]);
-                                        }
-                                    }
-                                    //choosenNode[i].neighbor = mergeNode.neighbor;
-                                    choosenNode[i].neighbor[j].neighbor = mergeNode.neighbor;
-                                    choosenNode[i].mergeNode.pos = mergeNode.pos;
-                                    choosenNode[i].mergeNode.mergeCount = mergeNode.mergeCount;
-                                    choosenNode[i].mergeNode.neighbor = mergeNode.neighbor;
-                                }
+                                mergeNode.neighbor.Add(waitMergeNodes[0].neighbor[n]);
                             }
                         }
                     }
-                    else Debug.Log("鄰居不為交錯點");
+                    waitMergeNodes.RemoveAt(0);
                 }
-                //將自己的鄰居設為合併點鄰居
-                if(mergeNode.mergeCount > 0)choosenNode[i].neighbor = mergeNode.neighbor;
+
+                if (mergeNodeDic.ContainsKey(mergeNode)) {
+                    for (int n = 0; n < mergeNodeDic[mergeNode].Count; n++)
+                    {
+                        mergeNodeDic[mergeNode][n].neighbor = mergeNode.neighbor;
+                    }
+                }
+
             }
 
             if (choosenNode[i].beenMerged)
@@ -1072,7 +1243,6 @@ public class PatrolManager : MonoBehaviour
 
             continue;
 
-            List<SpreadNode> tempNeighbor = new List<SpreadNode>();
             if (count == 1)
             {
             }
@@ -1082,69 +1252,6 @@ public class PatrolManager : MonoBehaviour
                 //x或y其一不抵銷，斜邊數量多列為交錯點，判斷為交錯點的權重比較小
                 if (count > 2)//couculateNum > 4 && couculateNum % 2 == 0
                 {
-                    //for (int n = 0; n < choosenNode[i].neighbor.Count; n++)
-                    //{
-                    //    tempNeighbor.Add(choosenNode[i].neighbor[n]);
-                    //    //自己不是合併點
-                    //    if (!choosenNode[i].beenMerged)
-                    //    {
-                    //        //鄰居是合併點，將鄰居的mergeNode與目前點的鄰居整合
-                    //        if (choosenNode[i].neighbor[n].beenMerged) {
-                    //            mergeNode = choosenNode[i].neighbor[n].mergeNode;
-                    //            mergeNode.pos += choosenNode[i].pos;
-                    //            mergeNode.mergeCount++;
-                    //            if (mergeNode.neighbor.Contains(choosenNode[i])) mergeNode.neighbor.Remove(choosenNode[i]);
-                    //            choosenNode[i].beenMerged = true;
-                    //            for (int m = 0; m < choosenNode[i].neighbor.Count; m++) {
-                    //                if (!mergeNode.neighbor.Contains(choosenNode[i].neighbor[m])) mergeNode.neighbor.Add(choosenNode[i].neighbor[m]);
-                    //            }
-                    //        }
-                    //        //鄰居是一般交錯點，結合成一新合併點
-                    //        else if (choosenNode[i].neighbor[n].crossNode) {
-                    //            choosenNode[i].beenMerged = true;
-                    //            choosenNode[i].neighbor[n].beenMerged = true;
-                    //            choosenNode[i].mergeNode = new SpreadNode();
-                    //            choosenNode[i].neighbor[n].mergeNode = mergeNode;
-                    //            mergeNode.mergeCount = 2;
-                    //            mergeNode.pos += choosenNode[i].pos;
-                    //            mergeNode.pos += choosenNode[i].neighbor[n].pos;
-                    //            mergeNode.neighbor = choosenNode[i].neighbor[n].neighbor;
-                    //            if (mergeNode.neighbor.Contains(choosenNode[i])) mergeNode.neighbor.Remove(choosenNode[i]);
-                    //            for (int m = 0; m < choosenNode[i].neighbor.Count; m++)
-                    //            {
-                    //                if (!mergeNode.neighbor.Contains(choosenNode[i].neighbor[m])) mergeNode.neighbor.Add(choosenNode[i].neighbor[m]);
-                    //            }
-                    //        }
-                    //    }
-                    //    //自己是合併點
-                    //    else {
-                    //        //鄰居是合併點，將鄰居的mergeNode與目前點的鄰居整合
-                    //        if (choosenNode[i].neighbor[n].beenMerged)
-                    //        {
-                    //            if (!choosenNode[i].neighbor[n].mergeNode.Equals(choosenNode[i].mergeNode))
-                    //            {
-                    //                mergeNode = choosenNode[i].mergeNode;
-                    //                mergeNode.pos += choosenNode[i].neighbor[n].pos;
-                    //                mergeNode.mergeCount += ;
-
-                    //                for (int m = 0; m < choosenNode[i].neighbor.Count; m++)
-                    //                {
-                    //                    if (!mergeNode.neighbor.Contains(choosenNode[i].neighbor[m])) mergeNode.neighbor.Add(choosenNode[i].neighbor[m]);
-                    //                }
-                    //            }
-                    //        }
-                    //        //鄰居是一般交錯點，併入自己合併點
-                    //        else if (choosenNode[i].neighbor[n].crossNode) { 
-                                
-                    //        }
-                    //    }
-                    //    Vector2Int pos = choosenNode[i].neighbor[n].pos;
-                    //    if (graphNodeDic.ContainsKey(pos))
-                    //    {
-                    //        //if ((graphNodeDic[pos].weight > tempW)) tempW = graphNodeDic[pos].weight;
-                    //    }
-                    //}
-
                     //只剩一個方向，且鄰居數等於三  權重最小
                     if (count == 3) //(Mathf.Abs(xNum) + Mathf.Abs(yNum)) == 1
                     {
@@ -1234,6 +1341,13 @@ public class PatrolManager : MonoBehaviour
                         }
                     }
                 }
+            }
+        }
+        foreach (KeyValuePair<SpreadNode, List<SpreadNode>> item in mergeNodeDic)
+        {
+            for (int n = 0; n < item.Value.Count; n++)
+            {
+                item.Value[n].neighbor = item.Key.neighbor;
             }
         }
     }

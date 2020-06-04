@@ -60,7 +60,11 @@ namespace PathFinder
             }
 
             patrolManager.InitGridSize(gridSizeX, gridSizeY);
-            patrolManager.CheckExistArea("Border");
+            //patrolManager.CheckExistArea("Border");
+            patrolManager.CheckExistArea("UpBorder");
+            patrolManager.CheckExistArea("DownBorder");
+            patrolManager.CheckExistArea("LeftBorder");
+            patrolManager.CheckExistArea("RightBorder");
             CreateGrid();
 
             offsetX = transform.position.x;
@@ -183,7 +187,7 @@ namespace PathFinder
                 //    }
                 //}
                 if (grid[0, y].walkable) {
-                    if(y > 0 && y < gridSizeY - 1) grid[0, y].AddArea("Border", 13, patrolManager);
+                    if(y >= 0 && y <= gridSizeY - 1) grid[0, y].AddArea("LeftBorder", 13, patrolManager);
                     //if (y == 0) grid[0, y].AddArea("Border", 24, patrolManager);
                     //else if (y == gridSizeY - 1) grid[0, y].AddArea("Border", 27, patrolManager);
                     //else grid[0, y].AddArea("Border", 13, patrolManager);
@@ -279,7 +283,7 @@ namespace PathFinder
                             }
                         }
                         else {
-                            if(y > 0 && y < gridSizeY - 1) grid[x, y].AddArea("Border", 12, patrolManager);
+                            if(y >= 0 && y <= gridSizeY - 1) grid[x, y].AddArea("RightBorder", 12, patrolManager);
                             //if (y == 0) grid[x, y].AddArea("Border", 23, patrolManager);
                             //else if (y == gridSizeY - 1) grid[x, y].AddArea("Border", 26, patrolManager);
                             //else grid[x, y].AddArea("Border", 12, patrolManager);
@@ -292,7 +296,7 @@ namespace PathFinder
             {
                 if (grid[x, 0].walkable && grid[x, 0].canChoose)
                 {
-                    if(x > 0 && x < gridSizeX-1) grid[x, 0].AddArea("Border", 11, patrolManager);
+                    if(x >= 0 && x <= gridSizeX-1) grid[x, 0].AddArea("DownBorder", 11, patrolManager);
                     if (!grid[x, 1].walkable)
                     {
                         grid[x, 0].AddArea(grid[x, 1].ColliderName, 14, patrolManager);
@@ -357,7 +361,7 @@ namespace PathFinder
                         }
                         else
                         {
-                            if(x > 0 && x < gridSizeX - 1) grid[x, y].AddArea("Border", 14, patrolManager);
+                            if(x >= 0 && x <= gridSizeX - 1) grid[x, y].AddArea("UpBorder", 14, patrolManager);
                         }
 
                         //斜方判斷
@@ -534,7 +538,7 @@ namespace PathFinder
                         if (!n.walkable) Gizmos.color = Color.black;
                         if (patrolManager.spreadGrid[n.gridX, n.gridY].current) {
                             Gizmos.color = Color.gray;
-                            if (patrolManager.spreadGrid[n.gridX, n.gridY].dir == new Vector2Int(0,1)) Gizmos.color = new Color(1, 0, 0);
+                            if (patrolManager.spreadGrid[n.gridX, n.gridY].dir == new Vector2Int(0, 1)) Gizmos.color = new Color(1, 0, 0);
                             else if (patrolManager.spreadGrid[n.gridX, n.gridY].dir == new Vector2Int(-1, 0)) Gizmos.color = new Color(0, 0, 1);
                             else if (patrolManager.spreadGrid[n.gridX, n.gridY].dir == new Vector2Int(1, 0)) Gizmos.color = new Color(0, 1, 0);
                             else if (patrolManager.spreadGrid[n.gridX, n.gridY].dir == new Vector2Int(0, -1)) Gizmos.color = new Color(0.5f, 0, 0);
@@ -549,14 +553,15 @@ namespace PathFinder
                             if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count > 2)
                             {
                                 if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count == 3) Gizmos.color = new Color(1, 0, 1);
-                                else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count == 4) Gizmos.color = new Color(1, 0, 0);
-                                else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count == 5) Gizmos.color = new Color(0, 0, 1);
-                                else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count == 6) Gizmos.color = new Color(0, 0, 0);
+                                else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count == 4) Gizmos.color = new Color(0.5f, 0, 0);
+                                else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count == 5) Gizmos.color = new Color(0, 0, 0.5f);
+                                else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count == 6) Gizmos.color = new Color(0.2f, 0.2f, 0.2f);
                                 else Gizmos.color = new Color(0, 0, 0);
                             }
                             else {
                                 if(patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count == 2) Gizmos.color = new Color(0, 1, 1);
-                                else Gizmos.color = new Color(0, 1, 0);
+                                else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count == 1) Gizmos.color = new Color(0, 0.5f, 0);
+                                else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count == 0) Gizmos.color = new Color(0, 0.3f, 0);
                             } 
                         }
                        
