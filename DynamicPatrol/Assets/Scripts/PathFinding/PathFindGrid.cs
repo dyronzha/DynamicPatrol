@@ -40,6 +40,10 @@ namespace PathFinder
 
         PatrolManager patrolManager;
 
+        [HideInInspector]
+        public Vector3 MaxBorderPoint;
+        [HideInInspector]
+        public Vector3 MinBorderPoint;
 
         public enum DrawType { 
             Weight, BeforeSpread, AfterSpread, GraphConnect
@@ -72,7 +76,9 @@ namespace PathFinder
 
             chooseValue = Mathf.FloorToInt(obstacleProximityPenalty / (blurSize*blurSize)) + chooseOffset;
 
-            
+            MaxBorderPoint = transform.position + 0.5f*new Vector3(gridWorldSize.x,0, gridWorldSize.y);
+            MinBorderPoint = transform.position - 0.5f * new Vector3(gridWorldSize.x, 0, gridWorldSize.y);
+            Debug.Log(MaxBorderPoint + "   " + MinBorderPoint);
         }
         public void Start()
         {
@@ -86,6 +92,7 @@ namespace PathFinder
                 return gridSizeX * gridSizeY;
             }
         }
+
 
         void CreateGrid()
         {
@@ -500,9 +507,9 @@ namespace PathFinder
                 {
                     if (drawType == DrawType.Weight)
                     {
-                        //Gizmos.color = Color.Lerp(Color.white, Color.black, Mathf.InverseLerp(penaltyMin, penaltyMax, n.movementPenalty));
-                        //Gizmos.color = (n.walkable) ? Gizmos.color : Color.red;
-                        Gizmos.color = (n.walkable) ? Color.white : Color.red;
+                        Gizmos.color = Color.Lerp(Color.white, Color.black, Mathf.InverseLerp(penaltyMin, penaltyMax, n.movementPenalty));
+                        Gizmos.color = (n.walkable) ? Gizmos.color : Color.red;
+                        //Gizmos.color = (n.walkable) ? Color.white : Color.red;
                     }
                     else if (drawType == DrawType.BeforeSpread)
                     {
@@ -574,7 +581,7 @@ namespace PathFinder
                     else if (drawType == DrawType.GraphConnect) {
                         Gizmos.color = Color.white;
                         if (!n.walkable) Gizmos.color = Color.black;
-                        if (patrolManager.spreadGrid[n.gridX, n.gridY].choosen) Gizmos.color = Color.gray;
+                        //if (patrolManager.spreadGrid[n.gridX, n.gridY].choosen) Gizmos.color = Color.gray;
                         if (patrolManager.choosenNodeDic.ContainsKey(new Vector2Int(n.gridX, n.gridY))) {
 
                             if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count <= 0)
@@ -584,7 +591,7 @@ namespace PathFinder
                             else {
                                 Gizmos.color = new Color(0, 1, 1);
                             }
-                            if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].crossNode) Gizmos.color = new Color(1, 0, 1);
+                            if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].crossNode || patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].beenMerged) Gizmos.color = new Color(1, 0, 1);
                             else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].turnNode) Gizmos.color = Color.yellow;
                             else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].endNode) Gizmos.color = Color.green;
                             //else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count < 2) Gizmos.color = Color.green;
@@ -609,9 +616,10 @@ namespace PathFinder
                     Gizmos.color = Color.red;
                     PatrolManager.PatrolGraphNode node = patrolManager.ConfirmGraph[i];
                     Vector3 from = new Vector3(node.pos.x, height, node.pos.z);
-                    for (int j = 0; j < node.besideNodes.Count; j++)
+
+                    foreach (KeyValuePair<PatrolManager.PatrolGraphNode, float> item in node.besideNodes)
                     {
-                        Vector3 to = new Vector3(node.besideNodes[j].node.pos.x, height, node.besideNodes[j].node.pos.z);
+                        Vector3 to = new Vector3(item.Key.pos.x, height, item.Key.pos.z);
                         Gizmos.DrawLine(from, to);
                     }
                     //height += 0.1f;

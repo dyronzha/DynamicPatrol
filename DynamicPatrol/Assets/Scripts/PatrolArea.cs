@@ -35,7 +35,6 @@ public class PatrolArea
         public int y;
         public Vector2Int direction;
         public Vector2Int oringin = new Vector2Int(-1, -1);
-        public int choosenWeight = 0;
         public SpreadGridNode(int _x, int _y, int _dir) {
             x = _x;
             y = _y;
@@ -55,28 +54,6 @@ public class PatrolArea
             }
             oringin = new Vector2Int(x, y);
         }
-        public SpreadGridNode(int _x, int _y, int _dir, int _weight)
-        {
-            x = _x;
-            y = _y;
-            stopSpread = false;
-            choosen = false;
-            if (_dir == 11) direction = new Vector2Int(0, 1);
-            else if (_dir == 12) direction = new Vector2Int(-1, 0);
-            else if (_dir == 13) direction = new Vector2Int(1, 0);
-            else if (_dir == 14) direction = new Vector2Int(0, -1);
-            else if (_dir == 23) direction = new Vector2Int(-1, 1);
-            else if (_dir == 24) direction = new Vector2Int(1, 1);
-            else if (_dir == 26) direction = new Vector2Int(-1, -1);
-            else if (_dir == 27) direction = new Vector2Int(1, -1);
-            else
-            {
-                direction = Vector2Int.zero;
-                stopSpread = true;
-            }
-            oringin = new Vector2Int(x, y);
-            choosenWeight = _weight;
-        }
         public SpreadGridNode(int _x, int _y, Vector2Int _dir) {
             x = _x;
             y = _y;
@@ -84,16 +61,6 @@ public class PatrolArea
             choosen = false;
             direction = _dir;
             oringin = new Vector2Int(x, y);
-        }
-        public SpreadGridNode(int _x, int _y, Vector2Int _dir, int _weight)
-        {
-            x = _x;
-            y = _y;
-            stopSpread = false;
-            choosen = false;
-            direction = _dir;
-            oringin = new Vector2Int(x, y);
-            choosenWeight = _weight;
         }
     }
 
@@ -108,7 +75,7 @@ public class PatrolArea
         string key = _x.ToString() + "," + _y.ToString();
         //spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir));
         if (name.CompareTo("Border") == 0) spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir));
-        else spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir, patrolManager.NotBorderWeight));
+        else spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir));
         spreadGridNmae.Add(key);
         
     }
@@ -117,13 +84,13 @@ public class PatrolArea
         string key = _x.ToString() + "," + _y.ToString();
         //spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir));
         if (name.CompareTo("Border") == 0) spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir));
-        else spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir, patrolManager.NotBorderWeight));
+        else spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir));
         spreadGridNmae.Add(key);
     }
-    public void AddSpreadGridTilt(int _x, int _y, Vector2Int _dir, int _weight)
+    public void AddSpreadGridTilt(int _x, int _y, Vector2Int _dir)
     {
         string key = _x.ToString() + "," + _y.ToString() + "," + _dir;
-        spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir, _weight));
+        spreadGrids.Add(key, new SpreadGridNode(_x, _y, _dir));
         spreadGridNmae.Add(key);
     }
 
