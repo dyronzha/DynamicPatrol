@@ -83,6 +83,7 @@ namespace PathFinder {
             for (int i = 1; i < waypoints.Count; i++)
             {
                 lookPoints[i] = new Vector3(waypoints[i].x, 0.0f, waypoints[i].z);
+                Debug.Log("path  point " + lookPoints[i]);
                 Vector2 currentPoint = V3ToV2(lookPoints[i]);
                 Vector2 dirToCurrentPoint = (currentPoint - previousPoint).normalized;
                 Vector2 turnBoundaryPoint = (i == finishLineIndex) ? currentPoint : currentPoint - dirToCurrentPoint * turnDst;

@@ -622,13 +622,13 @@ namespace PathFinder
                         Vector3 to = new Vector3(item.Key.pos.x, height, item.Key.pos.z);
                         Gizmos.DrawLine(from, to);
                     }
-                    //height += 0.1f;
+                    height += 1.0f;
                 }
                
                 height += 1.0f;
                 for (int i = 0; i < patrolManager.patrolPathes.Count; i++) {
                     Gizmos.color = Color.cyan;
-                    for (int j = 0; j < patrolManager.patrolPathes[i].lookPoints.Length-1; j++)
+                    for (int j = 1; j < patrolManager.patrolPathes[i].lookPoints.Length-1; j++)
                     {
                         Vector3 from = new Vector3(patrolManager.patrolPathes[i].lookPoints[j].x, height, patrolManager.patrolPathes[i].lookPoints[j].z);
                         Vector3 to = new Vector3(patrolManager.patrolPathes[i].lookPoints[j+1].x, height, patrolManager.patrolPathes[i].lookPoints[j+1].z);
