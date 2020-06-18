@@ -1063,7 +1063,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &386732177
 Transform:
   m_ObjectHideFlags: 0
@@ -1788,7 +1788,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &599265507
 Transform:
   m_ObjectHideFlags: 0
@@ -6354,7 +6354,7 @@ MonoBehaviour:
   chooseOffset: 0
   MaxBorderPoint: {x: 0, y: 0, z: 0}
   MinBorderPoint: {x: 0, y: 0, z: 0}
-  drawType: 3
+  drawType: 0
 --- !u!4 &1948129413
 Transform:
   m_ObjectHideFlags: 0
@@ -6381,15 +6381,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 018c9bdbf0f368e499ac4ad994297e79, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  leastNarrow: 0
+  leastNarrow: 0.7
   closeDstNum: 0
-  leastTurnDstNum: 5
+  leastTurnDstNum: 6
   connectTime: 0
-  maxConnectAngle: 15
-  minPatrolLength: 30
+  maxConnectAngle: 20
+  minPatrolLength: 10
   maxPatrolLength: 70
-  maxPathNum: 4
-  patrolCycleNum: 2
+  maxPathNum: 5
+  patrolCycleFailNum: 20
   patrolRepeatNum: 3
   turnDist: 1
   maxChoosenWeight: 0

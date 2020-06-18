@@ -206,17 +206,18 @@ namespace PathFinder
                     int sampleX = Mathf.Clamp(x, 0, kernelExtents);
                     if (grid[0, y].walkable)  //如果最左邊可以走，要確認右邊區域
                     {
-                        if (x < 0) penaltiesHorizontalPass[0, y] += obstacleProximityPenalty * kernelExtents;
+                        if (x < 0) penaltiesHorizontalPass[0, y] += obstacleProximityPenalty;// * kernelExtents;
                         else
                         {
                             penaltiesHorizontalPass[0, y] += grid[sampleX, y].movementPenalty;
                         }
                     }
-                    else {//不能走，增加權重
-                        if (x < 0) penaltiesHorizontalPass[0, y] += obstacleProximityPenalty*kernelExtents;
+                    else
+                    {//不能走，增加權重
+                        if (x < 0) penaltiesHorizontalPass[0, y] += obstacleProximityPenalty;
                         else penaltiesHorizontalPass[0, y] += grid[sampleX, y].movementPenalty;
                     }
-                    
+
                 }
                 for (int x = 1; x < gridSizeX; x++)
                 {
@@ -229,7 +230,8 @@ namespace PathFinder
                         penaltiesHorizontalPass[x, y] = penaltiesHorizontalPass[x - 1, y] - grid[removeIndex, y].movementPenalty + obstacleProximityPenalty;
                     }
                     else {
-                        penaltiesHorizontalPass[x, y] = penaltiesHorizontalPass[x - 1, y] - grid[removeIndex, y].movementPenalty + grid[addIndex, y].movementPenalty;
+                        if((x - kernelExtents - 1) < 0) penaltiesHorizontalPass[x, y] = penaltiesHorizontalPass[x - 1, y] - obstacleProximityPenalty + grid[addIndex, y].movementPenalty;
+                        else penaltiesHorizontalPass[x, y] = penaltiesHorizontalPass[x - 1, y] - grid[removeIndex, y].movementPenalty + grid[addIndex, y].movementPenalty;
                     }
 
                     //if (grid[x, y].walkable) {
@@ -317,7 +319,7 @@ namespace PathFinder
 
                     if (grid[x, 0].walkable)//如果最下面可以走，要確認上面區域
                     {
-                        if (y < 0) penaltiesVerticalPass[x, 0] += obstacleProximityPenalty * kernelExtents;//* kernelExtents;
+                        if (y < 0) penaltiesVerticalPass[x, 0] += obstacleProximityPenalty* kernelExtents*2+obstacleProximityPenalty;
                         else
                         {
                             penaltiesVerticalPass[x, 0] += penaltiesHorizontalPass[x, sampleY];
@@ -325,8 +327,8 @@ namespace PathFinder
                     }
                     else //不能走，直接填上面區域為自己碰撞物
                     {
-                        if (y < 0) penaltiesVerticalPass[x, 0] += obstacleProximityPenalty * kernelExtents;// *kernelExtents;
-                        else penaltiesVerticalPass[x,0] += penaltiesHorizontalPass[x, sampleY];
+                        if (y < 0) penaltiesVerticalPass[x, 0] += obstacleProximityPenalty * kernelExtents * 2 + obstacleProximityPenalty;// *kernelExtents;
+                        else penaltiesVerticalPass[x, 0] += penaltiesHorizontalPass[x, sampleY];
                     }
                 }
 
@@ -344,11 +346,12 @@ namespace PathFinder
 
                     if (y + kernelExtents >= gridSizeY) //如果會算到最上面且可以走的格子，加上一點權重。不要太靠邊
                     {
-                        penaltiesVerticalPass[x, y] = penaltiesVerticalPass[x, y - 1] - penaltiesHorizontalPass[x, removeIndex] + obstacleProximityPenalty * kernelExtents;// *kernelExtents;
+                        penaltiesVerticalPass[x, y] = penaltiesVerticalPass[x, y - 1] - penaltiesHorizontalPass[x, removeIndex] + obstacleProximityPenalty*kernelExtents*2+ obstacleProximityPenalty;
                     }
                     else
                     {
-                        penaltiesVerticalPass[x, y] = penaltiesVerticalPass[x, y - 1] - penaltiesHorizontalPass[x, removeIndex] + penaltiesHorizontalPass[x, addIndex];
+                        if((y - kernelExtents - 1) < 0) penaltiesVerticalPass[x, y] = penaltiesVerticalPass[x, y - 1] - (obstacleProximityPenalty * kernelExtents * 2 + obstacleProximityPenalty) + penaltiesHorizontalPass[x, addIndex];
+                        else penaltiesVerticalPass[x, y] = penaltiesVerticalPass[x, y - 1] - penaltiesHorizontalPass[x, removeIndex] + penaltiesHorizontalPass[x, addIndex];
                     }
 
                     if (grid[x, y].walkable && grid[x, y].canChoose)
@@ -605,6 +608,7 @@ namespace PathFinder
                     }
 
                     Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter));
+
                 }
                
             }
@@ -628,12 +632,13 @@ namespace PathFinder
                 height += 1.0f;
                 for (int i = 0; i < patrolManager.patrolPathes.Count; i++) {
                     Gizmos.color = Color.cyan;
-                    for (int j = 1; j < patrolManager.patrolPathes[i].lookPoints.Length-1; j++)
+                    for (int j = 1; j < patrolManager.patrolPathes[i].CurrentPath.lookPoints.Length; j++)
                     {
-                        Vector3 from = new Vector3(patrolManager.patrolPathes[i].lookPoints[j].x, height, patrolManager.patrolPathes[i].lookPoints[j].z);
-                        Vector3 to = new Vector3(patrolManager.patrolPathes[i].lookPoints[j+1].x, height, patrolManager.patrolPathes[i].lookPoints[j+1].z);
+                        Vector3 from = new Vector3(patrolManager.patrolPathes[i].CurrentPath.lookPoints[j].x, height, patrolManager.patrolPathes[i].CurrentPath.lookPoints[j].z);
+                        Vector3 to = new Vector3(patrolManager.patrolPathes[i].CurrentPath.lookPoints[j-1].x, height, patrolManager.patrolPathes[i].CurrentPath.lookPoints[j-1].z);
                         Gizmos.DrawLine(from, to);
                     }
+                    height += 1.0f;
                 }
             }
            

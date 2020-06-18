@@ -8,6 +8,10 @@ public class PatrolPath
     bool cycleType;
     Path path;
     Path reversePath;
+    Path curPath;
+    public Path CurrentPath {
+        get { return path; }
+    }
 
     int[] lookAroundPoints;
 
@@ -33,6 +37,7 @@ public class PatrolPath
             System.Array.Reverse(points);
             reversePath = new Path(points, turnDst);
         }
+        curPath = path;
     }
 
 

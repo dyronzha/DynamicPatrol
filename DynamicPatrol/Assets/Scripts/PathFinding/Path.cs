@@ -80,6 +80,8 @@ namespace PathFinder {
             finishLineIndex = turnBoundaries.Length - 1;
 
             Vector2 previousPoint = V3ToV2(waypoints[0]);
+            lookPoints[0] = new Vector3(waypoints[0].x, 0.0f, waypoints[0].z);
+            Debug.Log("path  point " + lookPoints[0]);
             for (int i = 1; i < waypoints.Count; i++)
             {
                 lookPoints[i] = new Vector3(waypoints[i].x, 0.0f, waypoints[i].z);
