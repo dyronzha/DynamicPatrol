@@ -24,6 +24,11 @@ public class PatrolManager : MonoBehaviour
     public int patrolCycleFailNum = 0;
     public int patrolRepeatNum = 3;
     public float turnDist;
+    public float patrolMinDynamicLength = 3.0f;
+    public LayerMask obstacleMask;
+
+    public Enemy testEnemy;
+    public Player testPlayer;
 
     [HideInInspector]
     public int maxChoosenWeight = 0;
@@ -31,6 +36,8 @@ public class PatrolManager : MonoBehaviour
     public bool runConnectEnd = false;
 
     PathFindGrid pathFindGrid;
+
+    EnemyManager enemyManager;
 
     [HideInInspector]
     public List<PatrolPath> patrolPathes = new List<PatrolPath>();
@@ -88,6 +95,11 @@ public class PatrolManager : MonoBehaviour
     Dictionary<SpreadNode, List<SpreadNode>> mergeNodeDic = new Dictionary<SpreadNode, List<SpreadNode>>();
 
     bool skipRun = false;
+
+    private void Awake()
+    {
+        enemyManager = GameObject.Find("EnemyManager").GetComponent<EnemyManager>();
+    }
 
     // Start is called before the first frame update
     void Start()
@@ -204,6 +216,10 @@ public class PatrolManager : MonoBehaviour
         }
         if (Input.GetKeyDown(KeyCode.P)) {
             skipRun = true;
+        }
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            StartCoroutine(DynamicPatrol(testPlayer.position, testEnemy));
         }
     }
 
@@ -777,7 +793,7 @@ public class PatrolManager : MonoBehaviour
                 //Debug.Log("上面 " + VStart);
 
                 //如果周圍有障礙繼續執行刪除分支
-                if (Physics.Linecast(VStart, VEnd, 1 << LayerMask.NameToLayer("Obstacle")) || Physics.Linecast(HStart, HEnd, 1 << LayerMask.NameToLayer("Obstacle")) ||
+                if (Physics.Linecast(VStart, VEnd, 1 << LayerMask.NameToLayer("Obstacle")) || Physics.Linecast(HStart, HEnd, obstacleMask) ||
                         VStart.z > pathFindGrid.MaxBorderPoint.z || VEnd.z < pathFindGrid.MinBorderPoint.z || HStart.x > pathFindGrid.MaxBorderPoint.x || HEnd.x < pathFindGrid.MinBorderPoint.x)
                 {
                     //Debug.Log("周圍有障礙 ");
@@ -987,7 +1003,7 @@ public class PatrolManager : MonoBehaviour
                 Vector3 VEnd = pos + new Vector3(0, 0, -leastNarrow);
                 Vector3 HStart = pos + new Vector3(leastNarrow, 0, 0);
                 Vector3 HEnd = pos + new Vector3(-leastNarrow, 0, 0);
-                if (Physics.Linecast(VStart, VEnd, 1 << LayerMask.NameToLayer("Obstacle")) || Physics.Linecast(HStart, HEnd, 1 << LayerMask.NameToLayer("Obstacle")) ||
+                if (Physics.Linecast(VStart, VEnd, 1 << LayerMask.NameToLayer("Obstacle")) || Physics.Linecast(HStart, HEnd, obstacleMask) ||
                         VStart.z > pathFindGrid.MaxBorderPoint.z || VEnd.z < pathFindGrid.MinBorderPoint.z || HStart.x > pathFindGrid.MaxBorderPoint.x || HEnd.x < pathFindGrid.MinBorderPoint.x)
                 {
                     for (int j = 0; j < choosenNode[i].neighbor.Count; j++)
@@ -1273,14 +1289,14 @@ public class PatrolManager : MonoBehaviour
                 Vector3 connectPos = pathFindGrid.GetNodePos(connectNeighbor.pos.x, connectNeighbor.pos.y);
                 Vector3 center = 0.5f * (sourcePos + connectPos);
                 Vector3 halfExtent = new Vector3((center - sourcePos).magnitude, 1.0f, leastNarrow);
-                Collider[] hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (connectPos - sourcePos)), 0), 1 << LayerMask.NameToLayer("Obstacle"));
+                Collider[] hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (connectPos - sourcePos)), 0), obstacleMask);
                 //(Physics.Linecast(pathFindGrid.GetNodePos(sourceNode.pos.x, sourceNode.pos.y), pathFindGrid.GetNodePos(connectNeighbor.pos.x, connectNeighbor.pos.y), 1 << LayerMask.NameToLayer("Obstacle")) 
                 if (lastTurnNode != null &&
                     ((hits == null ? false : (hits.Length > 0)) ||
                     (Vector2.Angle(lastDir, connectNeighbor.pos - detectNode.pos) > maxConnectAngle) && (connectLength - lastLength) > leastTurnDstNum))
                 {
                     sourcePos = pathFindGrid.GetNodePos(lastTurnNode.pos.x, lastTurnNode.pos.y);
-                    hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (connectPos - sourcePos)), 0), 1 << LayerMask.NameToLayer("Obstacle"));
+                    hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (connectPos - sourcePos)), 0), obstacleMask);
                     if (hits == null ? false : (hits.Length > 0)) {
                         lastTurnNode = detectNode;
                         lastLength += currentLength;
@@ -1408,7 +1424,7 @@ public class PatrolManager : MonoBehaviour
                     Vector3 connectPos = pathFindGrid.GetNodePos(connectNeighbor.pos.x, connectNeighbor.pos.y);
                     Vector3 center = 0.5f * (sourcePos + connectPos);
                     Vector3 halfExtent = new Vector3((center - sourcePos).magnitude, 1.0f, leastNarrow);
-                    Collider[] hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (connectPos - sourcePos)), 0), 1 << LayerMask.NameToLayer("Obstacle"));
+                    Collider[] hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (connectPos - sourcePos)), 0), obstacleMask);
                     //Physics.Linecast(pathFindGrid.GetNodePos(sourceNode.pos.x, sourceNode.pos.y), pathFindGrid.GetNodePos(connectNeighbor.pos.x, connectNeighbor.pos.y), 1 << LayerMask.NameToLayer("Obstacle")) 
                     Debug.Log(" hit wall  ：" + (hits == null ? false : (hits.Length > 0)));
 
@@ -1416,7 +1432,8 @@ public class PatrolManager : MonoBehaviour
                         (Vector2.Angle(lastDir, connectNeighbor.pos - lastTurnNode.pos) > maxConnectAngle && (connectLength - lastLength) > leastTurnDstNum && (lastLength > leastTurnDstNum))) //
                     {
                         sourcePos = pathFindGrid.GetNodePos(lastTurnNode.pos.x, lastTurnNode.pos.y);
-                        hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (connectPos - sourcePos)), 0), 1 << LayerMask.NameToLayer("Obstacle"));
+                        halfExtent = new Vector3((center - sourcePos).magnitude, 1.0f, leastNarrow);
+                        hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (connectPos - sourcePos)), 0), obstacleMask);
                         if (hits == null ? false : (hits.Length > 0))
                         {
                             lastTurnNode = detectNode;
@@ -1526,7 +1543,7 @@ public class PatrolManager : MonoBehaviour
                     Vector3 connectPos = pathFindGrid.GetNodePos(connectNeighbor.pos.x, connectNeighbor.pos.y);
                     Vector3 center = 0.5f * ( sourcePos + connectPos);
                     Vector3 halfExtent = new Vector3((center - sourcePos).magnitude, 1.0f, leastNarrow);
-                    Collider[] hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward)* Quaternion.Euler(0,Vector3.Angle(Vector3.left, (connectPos - sourcePos)),0), 1 << LayerMask.NameToLayer("Obstacle"));
+                    Collider[] hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward)* Quaternion.Euler(0,Vector3.Angle(Vector3.left, (connectPos - sourcePos)),0), obstacleMask);
                     //Physics.Linecast(pathFindGrid.GetNodePos(sourceNode.pos.x, sourceNode.pos.y), pathFindGrid.GetNodePos(connectNeighbor.pos.x, connectNeighbor.pos.y), 1 << LayerMask.NameToLayer("Obstacle"))
                     Debug.Log(" hit wall  ：" + (hits == null ? false : (hits.Length > 0)));
                     if (lastTurnNode != null &&
@@ -1534,7 +1551,7 @@ public class PatrolManager : MonoBehaviour
                     (Vector2.Angle(lastDir, connectNeighbor.pos - lastTurnNode.pos) > maxConnectAngle && (connectLength - lastLength) > leastTurnDstNum)))
                     {
                         sourcePos = pathFindGrid.GetNodePos(lastTurnNode.pos.x, lastTurnNode.pos.y);
-                        hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (connectPos - sourcePos)), 0), 1 << LayerMask.NameToLayer("Obstacle"));
+                        hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (connectPos - sourcePos)), 0), obstacleMask);
                         if (hits == null ? false : (hits.Length > 0))
                         {
                             lastTurnNode = detectNode;
@@ -1661,11 +1678,13 @@ public class PatrolManager : MonoBehaviour
 
     IEnumerator CreatePath() {
         Debug.Log("開始創建路線 ~~~~~~~~~");
+        bool giveUp = false;
         bool cycle = true;
         int cycleFail = 0;
         //連接出maxPathNum數量之路線
         for (int pathNum = 0; pathNum < maxPathNum;)
         {
+            if (giveUp) break;
             Debug.Log("第 " + (pathNum+1) + "  條路線");
             yield return null;
             float currentLength = 0;
@@ -1789,7 +1808,7 @@ public class PatrolManager : MonoBehaviour
                             }
 
                             //該連接點距離不能超過最大距離，且如果已經是其他路徑的點，需要計算有沒有超過最大重複點數量，且連接點不能在沒用清單裡，且連接點不能是上一個節點
-                            if ((currentLength + item.Value) < maxPatrolLength && (item.Key.detectNum <= 0 ? true : repeatNum < 1) &&
+                            if ((currentLength + item.Value) < maxPatrolLength && (item.Key.detectNum <= 0 ? true : repeatNum < patrolRepeatNum - 1) &&
                                 !uselessNode.Contains(item.Key) && ((patrolGraph.Count < 2) ? true : !item.Key.Equals(patrolGraph[patrolGraph.Count - 2])) )
                             {
 
@@ -1913,6 +1932,7 @@ public class PatrolManager : MonoBehaviour
                                     patrolGraph[i].detectNum++;
                                     patrolGraph[i].patrolPath = path;
                                 }
+                                Debug.Log("路線點 " + patrolGraph[patrolGraph.Count - 1].pos + "  &  " + patrolPoint[patrolGraph.Count - 1]);
                                 patrolPathes.Add(path);
                                 currentNode = null;
                                 cycleFail = 0;
@@ -1947,11 +1967,17 @@ public class PatrolManager : MonoBehaviour
                         int id = Random.Range(0, ConfirmGraph.Count);
 
                         //路線開頭點不能為用過，且可連點大於1，且沒在無用清單
+                        int count = 0;
                         while (ConfirmGraph[id].detectNum > 0)
                         {
                             Debug.Log("路線開頭點為用過 ");
                             yield return null;
                             id = Random.Range(0, ConfirmGraph.Count);
+                            count++;
+                            if (count >= ConfirmGraph.Count) {
+                                giveUp = true;
+                                break;
+                            } 
                         }
                         //將第一點加進路線中
                         couculateID.Add(id);
@@ -1971,8 +1997,7 @@ public class PatrolManager : MonoBehaviour
                         foreach (KeyValuePair<PatrolManager.PatrolGraphNode, float> item in currentNode.besideNodes)
                         {
 
-                            //如果這次比記錄過的值小，代表已經算過
-                            //if (count < hasCouculateNum[hasCouculateNum.Count - 1]) continue;
+                            //如果有初始點，從當前還沒計算過的繼續，沒有的話，代表已經是從開始點延伸的支線，都是從開頭0
                             int id = (firstNode != null ? hasCouculateBeside.Count - 1 : 0);
                             Debug.Log("遍歷 第" + (hasCouculateBeside[id].Count+1) + " 個連接點：" + item.Key.pos);
 
@@ -1986,19 +2011,12 @@ public class PatrolManager : MonoBehaviour
                                 continue;
                             }
 
-                            //如果連接點鄰居不超過1，到達一末端，改從頭連接  繞圈的不會需要末端點，記錄進沒用清單
-                            //if (item.Key.besideNodes.Count <= 1)
-                            //{
-                            //    Debug.Log(item.Key.pos + " 該連接點鄰居不超過1， 記錄進沒用清單  換下一個");
-                            //    hasCouculateBeside[hasCouculateBeside.Count - 1][count - 1] = true;
-                            //    continue;
-                            //}
 
                             if (!((currentLength + item.Value) < maxPatrolLength))
                             {
                                 Debug.Log(currentLength + item.Value + " 距離超過  ");
                             }
-                            if (!(item.Key.detectNum <= 0 ? true : repeatNum < 1))
+                            if (!(item.Key.detectNum <= 0 ? true : repeatNum < 0))
                             {
                                 Debug.Log("重複點數量超過 ");
                             }
@@ -2008,7 +2026,7 @@ public class PatrolManager : MonoBehaviour
                             }
 
                             //該連接點距離不能超過最大距離，且如果已經是其他路徑的點，需要計算有沒有超過最大重複點數量，且連接點不能在沒用清單裡，且連接點不能是上一個節點
-                            if ((currentLength + item.Value) < maxPatrolLength && (item.Key.detectNum <= 0 ? true : repeatNum < 1) && !patrolGraph.Contains(item.Key)
+                            if ((currentLength + item.Value) < maxPatrolLength && (item.Key.detectNum <= 0 ? true : repeatNum < patrolRepeatNum - 1) && !patrolGraph.Contains(item.Key)
                                 && ((patrolGraph.Count < 2) ? true : !item.Key.Equals(patrolGraph[patrolGraph.Count - 2])))
                             {
                                 if (item.Key.detectNum <= lastdetectNum) {
@@ -2038,16 +2056,17 @@ public class PatrolManager : MonoBehaviour
                                     patrolGraph[i].detectNum++;
                                     patrolGraph[i].patrolPath = path;
                                 }
-                                Debug.Log("路線點 " + patrolGraph[patrolGraph.Count - 1].pos + "  &  " + patrolPoint[patrolGraph.Count - 1]);
                                 patrolPathes.Add(path);
                                 currentNode = null;
                                 pathNum++;
                                 break;
                             }
 
+                            //上個id是該路線的最後一個
                             int lastID = hasCouculateBeside.Count - 1;
                             if (firstNode != null)
                             {
+                                //因為是來回走的，末端無法走之後，改往第一點延伸
                                 if (hasCouculateBeside[0].Count < firstNode.besideNodes.Count)
                                 {
                                     Debug.Log("該路線起始點有其他方向 改成從頭開始接  ");
@@ -2056,6 +2075,8 @@ public class PatrolManager : MonoBehaviour
                                 }
                                 else
                                 {
+                                    //第一點沒有方向可以延伸，末端退回
+
                                     //代表沒有接到下一點，移除本身，退回上個點
                                     if (lastID - 1 >= 0)
                                     {
@@ -2084,6 +2105,8 @@ public class PatrolManager : MonoBehaviour
                             }
                             else
                             {
+                                //從開始點的延伸也停止，往後退
+
                                 //代表沒有接到下一點，移除本身，退回上個點
                                 if (lastID - 1 >= 0)
                                 {
@@ -2149,7 +2172,6 @@ public class PatrolManager : MonoBehaviour
                                     patrolGraph[i].detectNum++;
                                     patrolGraph[i].patrolPath = path;
                                 }
-                                Debug.Log("路線點 " + patrolGraph[patrolGraph.Count - 1].pos + "  &  " + patrolPoint[patrolGraph.Count - 1]);
                                 patrolPathes.Add(path);
                                 currentNode = null;
                                 pathNum++;
@@ -2159,85 +2181,232 @@ public class PatrolManager : MonoBehaviour
                     }
                 }
 
-
-                //路線開頭點不能為用過
-                //int id = Random.Range(0, ConfirmGraph.Count);
-                //while (ConfirmGraph[id].detectNum > 0)
-                //{
-                //    id = Random.Range(0, ConfirmGraph.Count);
-                //}
-
-                //PatrolGraphNode node = ConfirmGraph[id];
-                //List<PatrolGraphNode> patrolGraph = new List<PatrolGraphNode>();
-                //List<Vector3> patrolPoint = new List<Vector3>();
-                //patrolGraph.Add(node);
-                //node.detectNum++;
-                //patrolPoint.Add(node.pos);
-                //int giveUpNum = 0;
-                //bool add = true;
-                //while (add)
-                //{
-                //    PatrolGraphNode.ConnectGraphNode connectNode = node.besideNodes[Random.Range(0, node.besideNodes.Count)];
-                //    int newLength = currentLength + connectNode.length;
-
-                //    //新的點不能在路線裡，新點的使用數不能超過3，長度不超過最大長度，重複點數量不超過3
-                //    if (!patrolGraph.Contains(connectNode.node) && connectNode.node.detectNum <= 3 && newLength <= maxPatrolLength && (newLength < minPatrolLength && connectNode.node.besideNodes.Count > 1))
-                //    {
-                //        giveUpNum = 0;
-                //        //新點是重複點，數量++
-                //        if (connectNode.node.detectNum > 0) {
-                //            repeatNum++;
-                //            if (repeatNum > 3) {
-                //                Debug.Log("因為重複點太多 來回 捨棄 ");
-                //                for (int i = 0; i < patrolGraph.Count; i++)
-                //                {
-                //                    patrolGraph[i].detectNum--;
-                //                }
-                //                patrolGraph.Clear();
-                //                patrolPoint.Clear();
-                //                pathNum--;
-                //                break;
-                //            }
-                //        } 
-
-                //        currentLength = newLength;
-                //        node = connectNode.node;
-                //        patrolGraph.Add(node);
-                //        patrolPoint.Add(node.pos);
-                //        node.detectNum++;
-
-                //        //超過最低長度且0.1機率，不再加新的點，行成路線
-                //        if (newLength >= minPatrolLength && Random.Range(0, 100) < 10)
-                //        {
-                //            add = false;
-                //            Path path = new Path(patrolPoint, turnDist);
-                //            patrolPathes.Add(path);
-                //        }
-                //    }
-                //    else
-                //    {
-                //        //連續重複失敗10次，捨棄這條路線
-                //        giveUpNum++;
-                //        if (giveUpNum >= 10)
-                //        {
-                //            Debug.Log("來回 捨棄 ");
-                //            for (int i = 0; i < patrolGraph.Count; i++)
-                //            {
-                //                patrolGraph[i].detectNum--;
-                //            }
-                //            patrolGraph.Clear();
-                //            patrolPoint.Clear();
-                //            pathNum--;
-                //            break;
-                //        }
-                //    }
-
-                //}
             }
+        }
+        for (int i = 0; i < patrolPathes.Count; i++)
+        {
+            patrolPathes[i].SetEnemy(enemyManager.SpawnEnemyInPatrol(patrolPathes[i]));
         }
     }
 
+    IEnumerator DynamicPatrol(Vector3 detectPoint, Enemy enemy) {
+        float leastLength;
+        bool overlap = false;
+        Enemy overlapEnemy;
 
+        float selfPatrolDst = .0f;
+        int selfPatrolID = -1;
+
+        //確認偵測點有沒有在現有的路線裡，有重疊就不改變路徑
+        for (int i = 0; i < patrolPathes.Count; i++)
+        {
+            //if (enemy.Equals(patrolPathes[i].patrolEnemy)) continue;
+            for (int j = 0; j < patrolPathes[i].pathPoints.Count-1; j++) {
+                //if (Physics.Linecast(detectPoint, patrolPathes[i].pathPoints[j], obstacleMask) || Physics.Linecast(detectPoint, patrolPathes[i].pathPoints[j + 1], obstacleMask)) {
+                //    continue;
+                //}
+
+                Debug.Log("point：" + detectPoint + "    line p1：" + patrolPathes[i].pathPoints[j] + "    line p2：" + patrolPathes[i].pathPoints[j+1]);
+                
+
+                Vector3 pathDir = patrolPathes[i].pathPoints[j + 1] - patrolPathes[i].pathPoints[j];
+                Vector3 pathDirNormal = pathDir.normalized;
+                Vector3 pointDir = detectPoint - patrolPathes[i].pathPoints[j];
+
+                float length = Vector3.Cross(pathDirNormal, pointDir).magnitude;
+
+                float lineDirLength = Vector3.Dot(pointDir, pathDirNormal);
+
+                Debug.Log("lind dir " + pathDir);
+                Debug.Log("length " + length);
+                Debug.Log("lineDirLength " + lineDirLength);
+
+                if (length < patrolMinDynamicLength && lineDirLength >= 0 &&
+                    //Mathf.Abs(lineDirLength) <= Mathf.Abs(pathDir.x / pathDirNormal.x) && Mathf.Abs(lineDirLength) <= Mathf.Abs(pathDir.z / pathDirNormal.z)
+                    patrolPathes[i].pathPoints[j].x+pathDir.x <= patrolPathes[i].pathPoints[j+1].x && patrolPathes[i].pathPoints[j].z + pathDir.z <= patrolPathes[i].pathPoints[j + 1].z
+                    ) {
+                    Debug.Log("overlappppppppppppppppppp other enemy  " + patrolPathes[i].patrolEnemy.name);
+                    overlap = true;
+                    overlapEnemy = patrolPathes[i].patrolEnemy;
+                    break;
+                }
+            }
+            if (overlap) break;
+        }
+        
+        yield return null;
+        if (!overlap) {
+            Debug.Log("nooooooooooooooooooooooooo overlap other enemy");
+            //找離偵測點最近的點，若有可以直接接到現有路徑的，記下來
+            float selfLeastDist = float.MaxValue;
+            float otherLeastDist = float.MaxValue;
+            PatrolGraphNode selfNearNode = null;
+            PatrolGraphNode otherNearNode = null;
+
+            for (int i = 0; i < ConfirmGraph.Count; i++) {
+                if (!Physics.Linecast(detectPoint, ConfirmGraph[i].pos, obstacleMask)) {
+                    float dist = (detectPoint - ConfirmGraph[i].pos).sqrMagnitude;
+                    if (ConfirmGraph[i].detectNum > 0)
+                    {
+                        if (ConfirmGraph[i].patrolPath.patrolEnemy.Equals(enemy))
+                        {
+                            if (dist < selfLeastDist) {
+                                selfLeastDist = dist;
+                                selfNearNode = ConfirmGraph[i];
+                            }
+                        }
+                        else {
+                            if (dist < otherLeastDist)
+                            {
+                                otherLeastDist = dist;
+                                otherNearNode = ConfirmGraph[i];
+                            }
+                        }
+                    }
+                    else {
+                        if (dist < otherLeastDist)
+                        {
+                            otherLeastDist = dist;
+                            otherNearNode = ConfirmGraph[i];
+                        }
+                    }
+                }
+
+            }
+
+            yield return null;
+            //接回自己的路線
+            if (selfNearNode != null)
+            {
+
+            }
+            else {
+                //有可以接的點
+                if (otherNearNode != null)
+                {
+                    //接到其他人的路線
+                    if (otherNearNode.detectNum > 0)
+                    {
+
+                    }
+                    //沒有接到路線，遍歷地圖
+                    else
+                    {
+                        PatrolGraphNode currentNode = otherNearNode;
+                        List<PatrolGraphNode> branchRoute = new List<PatrolGraphNode>();
+                        List<List<PatrolGraphNode>> hasCouculateBeside = new List<List<PatrolGraphNode>>();//紀錄目前的節點那些連接點算過了
+                        
+                        branchRoute.Add(otherNearNode);
+                        float currentLength = .0f;
+                        while (true)
+                        {
+                            yield return null;
+                            Debug.Log("路線 第 " + branchRoute.Count + " 個：" + currentNode.pos);
+                            PatrolGraphNode node = null;
+                            //遍歷每個連接點
+                            foreach (KeyValuePair<PatrolManager.PatrolGraphNode, float> item in currentNode.besideNodes)
+                            {
+
+                                int id = hasCouculateBeside.Count - 1;
+                                Debug.Log("遍歷 第" + (hasCouculateBeside[id].Count + 1) + " 個連接點：" + item.Key.pos);
+
+                                if (hasCouculateBeside[id].Count >= currentNode.besideNodes.Count)
+                                {
+                                    Debug.Log("該連接點已經全算過算過分支 換下一個");
+                                    break;
+                                }
+                                if (hasCouculateBeside[id].Contains(item.Key))
+                                {
+                                    Debug.Log("該連接點已經算過 換下一個");
+                                    continue;
+                                }
+
+                                if (currentNode.detectNum > 0)
+                                {
+                                    hasCouculateBeside[id].Add(item.Key);
+                                }
+                                else {
+                                    node = item.Key;
+                                }
+
+                                if (!((currentLength + item.Value) < maxPatrolLength))
+                                {
+                                    Debug.Log(currentLength + item.Value + " 距離超過  ");
+                                }
+                                if (!(item.Key.detectNum <= 0 ? true : repeatNum < 0))
+                                {
+                                    Debug.Log("重複點數量超過 ");
+                                }
+                                if (!((patrolGraph.Count < 2) ? true : !item.Key.Equals(patrolGraph[patrolGraph.Count - 2])))
+                                {
+                                    Debug.Log("是上一個點 ");
+                                }
+
+                                //該連接點距離不能超過最大距離，且如果已經是其他路徑的點，需要計算有沒有超過最大重複點數量，且連接點不能在沒用清單裡，且連接點不能是上一個節點
+                                if ((currentLength + item.Value) < maxPatrolLength && (item.Key.detectNum <= 0 ? true : repeatNum < patrolRepeatNum - 1) && !patrolGraph.Contains(item.Key)
+                                    && ((patrolGraph.Count < 2) ? true : !item.Key.Equals(patrolGraph[patrolGraph.Count - 2])))
+                                {
+                                    node = item.Key;
+                                    lastdetectNum = item.Key.detectNum;
+                                }
+                                else
+                                {
+                                    Debug.Log(" 不需要的點 ");
+                                    //hasCouculateBeside[id]++;
+                                    hasCouculateBeside[id].Add(item.Key);
+                                }
+                            }
+
+                            if (node == null) {
+                                int lastID = hasCouculateBeside.Count - 1;
+                                //代表沒有接到下一點，移除本身，退回上個點
+                                if (lastID - 1 >= 0)
+                                {
+                                    Debug.Log("起始點分支線， 沒有接到下一點，移除本身，退回上個點  ");
+                                    currentLength -= currentNode.besideNodes[patrolGraph[1]];
+                                    hasCouculateBeside.RemoveAt(0);
+                                    patrolGraph.RemoveAt(0);
+                                    patrolPoint.RemoveAt(0);
+
+                                    currentNode = patrolGraph[0];
+                                    if (currentNode.detectNum > 0) repeatNum = 1;
+                                    else repeatNum = 0;
+                                    Debug.Log("起始點分支線， 退回上個點  " + currentNode.pos);
+                                }
+                                else
+                                {
+                                    //如果退到該分支最後，重新選起始點
+                                    Debug.Log("起始點分支線， 退到底，開新分支  ");
+                                    currentNode = null;
+                                    couculateID.Clear();
+                                    hasCouculateBeside.Clear();
+                                    patrolGraph.Clear();
+                                    patrolPoint.Clear();
+                                }
+                            }
+                            
+                        }
+                    }
+                }
+                //沒有點可以接到偵測點
+                else { 
+                    
+                }
+            }
+
+            if (nearNode != null) {
+                yield return null;
+                PatrolGraphNode currentNode = nearNode;
+                List<PatrolGraphNode> bracchRoute = new List<PatrolGraphNode>();
+                while (true) {
+                    yield return null;
+                    
+                }
+            }
+        }
+
+
+    }
 
     //int CheckTurnCrossNode(SpreadNode node) {
     //    // 0:一般點 // 1:轉折點 // 2:交錯點
