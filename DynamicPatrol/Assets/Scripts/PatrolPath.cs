@@ -6,6 +6,9 @@ using PathFinder;
 public class PatrolPath
 {
     bool cycleType;
+    public bool CycleRoute {
+        get { return cycleType; }
+    }
     bool reverse = false;
     int curPatrolPointID = 1;
     Path patrolPath;
@@ -15,10 +18,11 @@ public class PatrolPath
         get { return patrolPath; }
     }
     public List<Vector3> pathPoints;
+    public List<PatrolManager.PatrolGraphNode> pathPatrolGraphNode;
 
     int[] lookAroundPoints;
     public int LookAroundPoints(int id) {
-        return (!reverse ? (lookAroundPoints[id]) : (lookAroundPoints[lookAroundPoints.Length - 1 - id]));
+        return ((!reverse) ? (lookAroundPoints[id]) : (lookAroundPoints[lookAroundPoints.Length - 1 - id]));
     }
 
     public Vector3 startPos {
@@ -30,10 +34,13 @@ public class PatrolPath
         get { return enemy; }
     }
 
-    public PatrolPath(bool cycle, List<Vector3> patrolPoint, float turnDst) {
+    public PatrolPath(bool cycle, List<Vector3> patrolPoint, List<PatrolManager.PatrolGraphNode> patrolGraphNode, float turnDst) {
+        reverse = false;
+        curPatrolPointID = 1;
         cycleType = cycle;
         lookAroundPoints = new int[patrolPoint.Count];
         pathPoints = patrolPoint;
+        pathPatrolGraphNode = patrolGraphNode;
         bool lastLook = false;
         Vector3[] points = new Vector3[patrolPoint.Count];
         points[0] = patrolPoint[0];
@@ -113,8 +120,8 @@ public class PatrolPath
                     patrolPath = curPatrolPath;
                     reverse = !reverse;
 
-                    if (!reverse) lookAroundNum = lookAroundPoints[0];
-                    else lookAroundNum = lookAroundPoints[curPatrolPath.finishLineIndex];
+                    if (!reverse) lookAroundNum = lookAroundPoints[curPatrolPath.finishLineIndex];
+                    else lookAroundNum = lookAroundPoints[0]; 
                 }
                 else {
                     lookAroundNum = lookAroundPoints[curPatrolPath.finishLineIndex];

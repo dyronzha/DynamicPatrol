@@ -82,6 +82,13 @@ public class Enemy : MonoBehaviour
         RSideLookDir = new Vector3(transform.forward.z, 0, -transform.forward.x);
     }
 
+    public void SearchUpdatePatrolPath(PatrolPath path) {
+        patrolPath = path;
+        transform.position = path.startPos;
+        ChangeState(EnemyState.Patrol);
+        patrolEnd = false;
+    }
+
     void ChangeState(EnemyState state) {
         stateStep = 0;
         curState = state;
