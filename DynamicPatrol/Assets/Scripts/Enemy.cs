@@ -12,13 +12,17 @@ public class Enemy : MonoBehaviour
     EnemyManager enemyManager;
 
     public enum EnemyState {
-        Patrol, lookAround, Search, Chase
+        Patrol, lookAround, Search, Chase, backRoute
     }
     EnemyState curState = EnemyState.Patrol;
 
-    int curPatrolID = 1, curLookNum = 0, lookAroundNum = 0;
+    int curLookNum = 0, lookAroundNum = 0;
     Vector3 nextPatrolPos, moveFWD;
-    PatrolPath patrolPath;
+    PatrolPath patrolPath, oringinPatrol;
+    public PatrolPath OringinPatrolPath {
+        get { return oringinPatrol; }
+    }
+    PathFinder.Path backRoutePath;
 
     bool lefRot = true, patrolEnd = false;
     float lookAroundTime = .0f;
@@ -74,6 +78,7 @@ public class Enemy : MonoBehaviour
     }
     public void SetPatrolPath(PatrolPath path) {
         patrolPath = path;
+        oringinPatrol = path;
         transform.position = path.startPos;
 
         Debug.Log("startttttttttttt  pos " + transform.position);
@@ -91,6 +96,7 @@ public class Enemy : MonoBehaviour
 
     void ChangeState(EnemyState state) {
         stateStep = 0;
+        curLookNum = 0;
         curState = state;
     }
 
@@ -151,32 +157,42 @@ public class Enemy : MonoBehaviour
     void LookingAround() {
         if (stateStep == 0)
         {
-            
+            //第一階段先轉到固定位
             float angle = Vector3.SignedAngle(transform.forward, LSideLookDir, Vector3.up);
             if (Mathf.Abs(angle) >= lookRotateSpeed * Time.deltaTime * 2.0f) transform.rotation *= Quaternion.Euler(0, lookClockWay * lookRotateSpeed * Time.deltaTime, 0);
-            else {
+            else
+            {
                 transform.rotation = Quaternion.LookRotation(LSideLookDir);
-                stateStep++;
-                if (stateStep > 1) {
-                    curLookNum++;
-                    if (curLookNum > lookAroundNum) stateStep = 2;
-                }
+                stateStep = 1;
             }
             //Debug.Log("第一階段 轉向  angle " + angle + "   " + LSideLookDir) ;
         }
-        else if (stateStep == 1) {
+        else if (stateStep == 1)
+        {
             float angle = Vector3.SignedAngle(transform.forward, RSideLookDir, Vector3.up);
             if (Mathf.Abs(angle) >= lookRotateSpeed * Time.deltaTime * 2.0f) transform.rotation *= Quaternion.Euler(0, -lookClockWay * lookRotateSpeed * Time.deltaTime, 0);
             else
             {
                 transform.rotation = Quaternion.LookRotation(RSideLookDir);
-                stateStep = 0;
+                stateStep = 2;
                 curLookNum++;
-                if (curLookNum > lookAroundNum) stateStep = 2;
+                if (curLookNum > lookAroundNum) stateStep = 3;
             }
             //Debug.Log("第二階段 轉向  angle " + angle + "   " + RSideLookDir);
         }
-        else {
+        else if (stateStep == 2) {
+            float angle = Vector3.SignedAngle(transform.forward, LSideLookDir, Vector3.up);
+            if (Mathf.Abs(angle) >= lookRotateSpeed * Time.deltaTime * 2.0f) transform.rotation *= Quaternion.Euler(0, lookClockWay * lookRotateSpeed * Time.deltaTime, 0);
+            else
+            {
+                transform.rotation = Quaternion.LookRotation(LSideLookDir);
+                stateStep = 1;
+                curLookNum++;
+                if (curLookNum > lookAroundNum) stateStep = 3;
+            }
+        }
+        else
+        {
             float angle = Vector3.SignedAngle(transform.forward, moveFWD, Vector3.up);
             if (Mathf.Abs(angle) >= lookRotateSpeed * Time.deltaTime * 2.0f) transform.rotation *= Quaternion.Euler(0, Mathf.Sign(angle) * lookRotateSpeed * Time.deltaTime, 0);
             else

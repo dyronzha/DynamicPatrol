@@ -637,6 +637,7 @@ namespace PathFinder
                         Vector3 from = new Vector3(patrolManager.patrolPathes[i].CurrentPath.lookPoints[j].x, height, patrolManager.patrolPathes[i].CurrentPath.lookPoints[j].z);
                         Vector3 to = new Vector3(patrolManager.patrolPathes[i].CurrentPath.lookPoints[j-1].x, height, patrolManager.patrolPathes[i].CurrentPath.lookPoints[j-1].z);
                         Gizmos.DrawLine(from, to);
+                        if(j == 1 && patrolManager.patrolPathes[i].LookAroundPoints(0) > 0) Gizmos.DrawSphere(to, 0.5f);
                         if (patrolManager.patrolPathes[i].LookAroundPoints(j) > 0)
                         {
                             Gizmos.DrawSphere(from, 0.5f);

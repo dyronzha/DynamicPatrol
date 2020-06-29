@@ -13,7 +13,7 @@ namespace PathFinder {
 
         void Awake()
         {
-            requestManager = transform.parent.GetComponent<PathRequestManager>();
+            requestManager = GameObject.Find("PathRequestManager").GetComponent<PathRequestManager>();
             grid = GetComponent<PathFindGrid>();
         }
 

@@ -20,8 +20,11 @@ public class PatrolPath
     public List<Vector3> pathPoints;
     public List<PatrolManager.PatrolGraphNode> pathPatrolGraphNode;
 
+    public List<PatrolManager.PatrolGraphNode> newBranchGraphNode;
+
     int[] lookAroundPoints;
     public int LookAroundPoints(int id) {
+        //return lookAroundPoints[id];
         return ((!reverse) ? (lookAroundPoints[id]) : (lookAroundPoints[lookAroundPoints.Length - 1 - id]));
     }
 
@@ -99,8 +102,15 @@ public class PatrolPath
             reversePath = new Path(points, turnDst);
         }
         curPatrolPath = patrolPath;
+
+        for (int i = 0; i < lookAroundPoints.Length; i++) {
+            Debug.Log("look around point " + lookAroundPoints[i]);
+        }
     }
 
+    public void SetNewBranchNode(List<PatrolManager.PatrolGraphNode> nodes) {
+        newBranchGraphNode = nodes;
+    }
     public void SetEnemy(Enemy _enemy) {
         enemy = _enemy;
     }
