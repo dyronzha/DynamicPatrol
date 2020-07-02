@@ -4,23 +4,33 @@ using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
+    bool newPatrol = false, changingPath = false, searchRoute = false;
+    int changingPathConnectID = -1;
     int stateStep = 0;
     float sightRadius, sightAngle;
     float moveSpeed, chaseSpeed, moveRotateSpeed, lookRotateSpeed;
     float lookAroundAngle;
+    float seePlayerTime = .0f, loosePlayerTime = .0f, reflectTime;
 
     EnemyManager enemyManager;
 
     public enum EnemyState {
-        Patrol, lookAround, Search, Chase, backRoute
+        Patrol, lookAround, Search, Chase, GoBackRoute, Suspect
     }
     EnemyState curState = EnemyState.Patrol;
+    EnemyState lastState;
 
     int curLookNum = 0, lookAroundNum = 0;
-    Vector3 nextPatrolPos, moveFWD;
-    PatrolPath patrolPath, oringinPatrol;
-    public PatrolPath OringinPatrolPath {
-        get { return oringinPatrol; }
+    Vector3 nextPatrolPos, moveFWD, lastPathPoint, playerLastPos, playerDir;
+    PatrolManager patrolManager;
+    PatrolPath patrolPath, newPatrolPath;
+    PatrolPath oringinPath;
+    public PatrolPath OringinPath {
+        get { return oringinPath; }
+    }
+    List<PatrolManager.PatrolGraphNode> oringinPatrolGraphNode;
+    public List<PatrolManager.PatrolGraphNode> OringinPatrolGraphNode {
+        get { return oringinPatrolGraphNode; }
     }
     PathFinder.Path backRoutePath;
 
@@ -32,6 +42,8 @@ public class Enemy : MonoBehaviour
 
     public MeshFilter viewMeshFilter;
     Mesh viewMesh;
+
+    System.Action<PatrolPath, PatrolPath> DynamicChangingPathCBK = null;
 
     // Start is called before the first frame update
     private void Awake()
@@ -55,31 +67,103 @@ public class Enemy : MonoBehaviour
         switch (curState) {
             case EnemyState.Patrol:
                 Patroling();
+                if (DetectPlayer())
+                {
+                    seePlayerTime += Time.deltaTime;
+                    if (seePlayerTime >= reflectTime)
+                    {
+                        ChangeState(EnemyState.Suspect);
+                        seePlayerTime = .0f;
+                    }
+                }
+                else { 
+                    seePlayerTime -= Time.deltaTime;
+                    if (seePlayerTime <= .0f) seePlayerTime = .0f;
+                } 
                 break;
+
             case EnemyState.lookAround:
                 LookingAround();
+                if (DetectPlayer())
+                {
+                    seePlayerTime += Time.deltaTime;
+                    if (seePlayerTime >= reflectTime)
+                    {
+                        ChangeState(EnemyState.Suspect);
+                        seePlayerTime = .0f;
+                    }
+                }
+                else
+                {
+                    seePlayerTime -= Time.deltaTime;
+                    if (seePlayerTime <= .0f) seePlayerTime = .0f;
+                }
+                break;
+
+            case EnemyState.Chase:
+                if (DetectPlayer()) Chasing();
+                else {
+                    ChangeState(EnemyState.Search);
+                    StartCoroutine(patrolManager.DynamicPatrol(playerLastPos, this));
+                } 
+                break;
+
+            case EnemyState.Search:
+                Searching(DetectPlayer());
+                break;
+
+            case EnemyState.Suspect:
+                Suspecting();
+                if (DetectPlayer())
+                {
+                    seePlayerTime += Time.deltaTime;
+                    if (seePlayerTime >= reflectTime)
+                    {
+                        ChangeState(EnemyState.Chase);
+                        seePlayerTime = .0f;
+                    }
+                }
+                else
+                {
+                    seePlayerTime -= Time.deltaTime;
+                    if (seePlayerTime <= .0f) seePlayerTime = .0f;
+                    loosePlayerTime += Time.deltaTime;
+                    if (loosePlayerTime > Random.Range(1.5f, 3.0f)) {
+                        loosePlayerTime = .0f;
+                        ChangeState(lastState);
+                    }
+                }
+                break;
+
+            case EnemyState.GoBackRoute:
                 break;
         }
+        lastState = curState;
     }
     private void LateUpdate()
     {
         DrawFieldofView();
     }
 
-    public void InitInfo(EnemyManager manager, float _moveSpeed, float _chaseSpeed, float _moveRotateSpeed, float _lookRotateSpeed, float _sightRadius, float _sightAngle) {
+    public void InitInfo(EnemyManager manager) {
         enemyManager = manager;
-        moveSpeed = _moveSpeed;
-        chaseSpeed = _chaseSpeed;
-        moveRotateSpeed = _moveRotateSpeed;
-        lookRotateSpeed = _lookRotateSpeed;
-        sightRadius = _sightRadius;
-        sightAngle = _sightAngle;
+        moveSpeed = manager.moveSpeed;
+        chaseSpeed = manager.chaseSpeed;
+        moveRotateSpeed = manager.moveRotateSpeed;
+        lookRotateSpeed = manager.lookRotateSpeed;
+        sightRadius = manager.sightRadius;
+        sightAngle = manager.sightAngle;
+        reflectTime = manager.reflectTime;
         Debug.Log(enemyManager);
     }
-    public void SetPatrolPath(PatrolPath path) {
+    public void SetPatrolPath(PatrolPath path, PatrolManager _patrolManager) {
+        patrolManager = _patrolManager;
         patrolPath = path;
-        oringinPatrol = path;
+        oringinPath = path;
+        oringinPatrolGraphNode = path.pathPatrolGraphNode;
         transform.position = path.startPos;
+        lastPathPoint = path.startPos;
+        transform.rotation = Quaternion.LookRotation(path.GetPathPoint(1) - lastPathPoint);
 
         Debug.Log("startttttttttttt  pos " + transform.position);
         gameObject.SetActive(true);
@@ -87,17 +171,59 @@ public class Enemy : MonoBehaviour
         RSideLookDir = new Vector3(transform.forward.z, 0, -transform.forward.x);
     }
 
-    public void SearchUpdatePatrolPath(PatrolPath path) {
+    public void TestDynamicPatrol(PatrolPath path) {
         patrolPath = path;
         transform.position = path.startPos;
         ChangeState(EnemyState.Patrol);
         patrolEnd = false;
     }
 
+    public void SearchUpdatePatrolPath(PatrolPath path, Enemy enemy, System.Action<PatrolPath, PatrolPath> pathChangingCBK) {
+        
+        if (this.Equals(enemy))
+        {
+            newPatrol = true;
+            newPatrolPath = path;
+            patrolEnd = false;
+            DynamicChangingPathCBK = pathChangingCBK;
+            //ChangeState(EnemyState.Patrol);
+            //patrolPath = path;
+            //transform.position = path.startPos;
+        }
+        else {
+            newPatrol = true;
+            newPatrolPath = path;
+            patrolEnd = false;
+            DynamicChangingPathCBK = pathChangingCBK;
+        }
+    }
+
     void ChangeState(EnemyState state) {
+        if(state != EnemyState.Suspect) curLookNum = 0;
         stateStep = 0;
-        curLookNum = 0;
         curState = state;
+    }
+
+    bool DetectPlayer() {
+        return false;
+        if (enemyManager.player.Visible) {
+            Vector3 playerPos = enemyManager.player.position;
+            if (!Physics.Linecast(playerPos, transform.position, enemyManager.obstacleMask))
+            {
+                playerDir = playerPos - transform.position;
+                if (playerDir.sqrMagnitude <= sightRadius * sightRadius)
+                {
+                    float angle = Vector3.Angle(transform.forward, playerDir);
+                    if (angle <= sightAngle * 0.5f)
+                    {
+                        playerLastPos = playerPos;
+
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     void Patroling() {
@@ -112,9 +238,45 @@ public class Enemy : MonoBehaviour
             return;
         }
 
-        Vector3 targetPos = new Vector3(0, 0, 0);
+        Vector3 targetPos = new Vector3(-100, 0, -100);
         if (patrolPath.MoveInPatrolRoute(transform.position, ref targetPos, ref lookAroundNum)) {
-            //Debug.Log("goalllll reach " + targetPos);
+            Debug.Log("goalllll reach " + lastPathPoint);
+
+            //檢查有沒有動態變化路線，並在走到變化路線上時變更路線和ids
+            if (newPatrol) {
+                if (!changingPath)
+                {
+                    Debug.Log("channnnge targettttttttt " + targetPos);
+                    if (newPatrolPath.pathPoints.Contains(targetPos))
+                    {
+                        Debug.Log("channnnge targettttttttt " + targetPos + "    " + newPatrolPath.pathPoints.IndexOf(targetPos));
+                        changingPath = true;
+                    }
+                }
+                else {
+                    if (!patrolPath.Reverse) changingPathConnectID = newPatrolPath.pathPoints.IndexOf(lastPathPoint);
+                    else
+                    {
+                        newPatrolPath.SetPathReverse();
+                        //if(newPatrolPath.TBranch)
+                        //    changingPathConnectID = newPatrolPath.pathPoints.Count - 1 - newPatrolPath.pathPoints.IndexOf(lastPathPoint) - newPatrolPath.newBranchGraphNode.Count * 2;
+                        //else
+                        //    changingPathConnectID = newPatrolPath.pathPoints.Count - 1 - newPatrolPath.pathPoints.IndexOf(lastPathPoint);
+                        changingPathConnectID = newPatrolPath.pathPoints.Count - 1 - newPatrolPath.pathPoints.IndexOf(lastPathPoint);
+                        Debug.Log(newPatrolPath.TBranch + "   new path count" + (newPatrolPath.pathPoints.Count - 1));
+                        Debug.Log("new path id " + newPatrolPath.pathPoints.IndexOf(lastPathPoint));
+                        Debug.Log("new path branch " + newPatrolPath.newBranchGraphNode.Count);
+                    }
+                    newPatrol = false;
+                    changingPath = false;
+                    newPatrolPath.SetPatrolPathID(changingPathConnectID + 1);
+                    targetPos = newPatrolPath.GetPathPoint(changingPathConnectID + 1);
+                    Debug.Log(" ChangingPathConnectID  " + (changingPathConnectID+1) + "    " + targetPos);
+                    lookAroundNum = newPatrolPath.LookAroundPoints(changingPathConnectID);
+                    DynamicChangingPathCBK(patrolPath, newPatrolPath);
+                    patrolPath = newPatrolPath;
+                }
+            }
             moveFWD = new Vector3(targetPos.x - transform.position.x, 0, targetPos.z - transform.position.z).normalized;
             if (lookAroundNum > 0)
             {
@@ -139,7 +301,7 @@ public class Enemy : MonoBehaviour
                 //if (Mathf.Abs(angle) >= rotateSpeed * Time.deltaTime * 2.0f) transform.rotation *= Quaternion.Euler(0, Mathf.Sign(angle) * rotateSpeed * Time.deltaTime, 0);
                 //else transform.rotation = Quaternion.LookRotation(moveFWD);
             }
-
+            lastPathPoint = targetPos;
         }
         else {
             //Debug.Log("notttttt reach " + targetPos);
@@ -202,6 +364,96 @@ public class Enemy : MonoBehaviour
                 ChangeState(EnemyState.Patrol);
             }
             //Debug.Log("第三階段 轉向  angle " + angle + "   " + moveFWD);
+        }
+    }
+
+    void Suspecting() {
+        transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(playerDir), Time.deltaTime * moveRotateSpeed);
+    }
+
+    void Chasing() {
+        Vector3 moveFWD = playerDir.normalized;
+        transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(moveFWD), Time.deltaTime * moveRotateSpeed);
+        transform.position += transform.forward * chaseSpeed * Time.deltaTime;
+    }
+
+    void Searching(bool findPlayer) {
+        if (findPlayer) {
+            transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(moveFWD), Time.deltaTime * moveRotateSpeed);
+            seePlayerTime += Time.deltaTime;
+            if (seePlayerTime > reflectTime) ChangeState(EnemyState.Chase);
+            return;
+        }
+
+        Vector3 diff = new Vector3(0,0,0);
+        if (stateStep == 0)
+        {
+            diff = (playerLastPos - transform.position);
+            if (diff.sqrMagnitude > 0.5f)
+            {
+                transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(moveFWD), Time.deltaTime * moveRotateSpeed);
+                transform.position += transform.forward * chaseSpeed * Time.deltaTime;
+            }
+            else
+            {
+                stateStep++;
+                LSideLookDir = new Vector3(-transform.forward.z, 0, transform.forward.x);
+                RSideLookDir = new Vector3(transform.forward.z, 0, -transform.forward.x);
+                lookClockWay = Mathf.Sign(Vector3.SignedAngle(transform.forward, (Random.Range(.0f,1.0f) >= 0.5f ? LSideLookDir : RSideLookDir), Vector3.up));
+
+            }
+        }
+        else if (stateStep == 1)
+        {
+            //第一階段先轉到固定位
+            float angle = Vector3.SignedAngle(transform.forward, LSideLookDir, Vector3.up);
+            if (Mathf.Abs(angle) >= lookRotateSpeed * Time.deltaTime * 2.0f) transform.rotation *= Quaternion.Euler(0, lookClockWay * lookRotateSpeed * 1.2f * Time.deltaTime, 0);
+            else
+            {
+                transform.rotation = Quaternion.LookRotation(LSideLookDir);
+                stateStep = 2;
+            }
+            //Debug.Log("第一階段 轉向  angle " + angle + "   " + LSideLookDir) ;
+        }
+        else if (stateStep == 2)
+        {
+            float angle = Vector3.SignedAngle(transform.forward, RSideLookDir, Vector3.up);
+            if (Mathf.Abs(angle) >= lookRotateSpeed * Time.deltaTime * 2.0f) transform.rotation *= Quaternion.Euler(0, -lookClockWay * lookRotateSpeed * 1.2f * Time.deltaTime, 0);
+            else
+            {
+                transform.rotation = Quaternion.LookRotation(RSideLookDir);
+                stateStep = 2;
+                curLookNum++;
+                if (curLookNum >= 3) {
+                    lookClockWay = Mathf.Sign(Vector3.SignedAngle(transform.forward, -diff, Vector3.up));
+                    stateStep = 4;
+                } 
+            }
+            //Debug.Log("第二階段 轉向  angle " + angle + "   " + RSideLookDir);
+        }
+        else if (stateStep == 3)
+        {
+            float angle = Vector3.SignedAngle(transform.forward, LSideLookDir, Vector3.up);
+            if (Mathf.Abs(angle) >= lookRotateSpeed * Time.deltaTime * 2.0f) transform.rotation *= Quaternion.Euler(0, lookClockWay * lookRotateSpeed * 1.2f * Time.deltaTime, 0);
+            else
+            {
+                transform.rotation = Quaternion.LookRotation(LSideLookDir);
+                stateStep = 1;
+                curLookNum++;
+                if (curLookNum >= 3) {
+                    lookClockWay = Mathf.Sign(Vector3.SignedAngle(transform.forward, -diff , Vector3.up));
+                    stateStep = 4;
+                } 
+            }
+        }
+        else {
+            ChangeState(EnemyState.GoBackRoute);
+            //float angle = Vector3.SignedAngle(transform.forward, -diff, Vector3.up);
+            //if (Mathf.Abs(angle) >= lookRotateSpeed * Time.deltaTime * 2.0f) transform.rotation *= Quaternion.Euler(0, lookClockWay * lookRotateSpeed * Time.deltaTime, 0);
+            //else
+            //{
+            //    transform.rotation = Quaternion.LookRotation(-diff);
+            //}
         }
     }
 

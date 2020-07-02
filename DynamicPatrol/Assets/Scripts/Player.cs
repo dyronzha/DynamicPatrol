@@ -5,6 +5,10 @@ using UnityEngine;
 public class Player : MonoBehaviour
 {
     float colliderRadius = .0f;
+    bool visible = true;
+    public bool Visible {
+        get { return visible; }
+    }
 
     public float moveSpeed = 5.0f;
     public float collidResolution = 1.2f;
@@ -31,6 +35,7 @@ public class Player : MonoBehaviour
     void Update()
     {
         Move();
+        if (Input.GetKeyDown(KeyCode.Space)) visible = !visible;
     }
     void Move() {
         int hMove = 0;

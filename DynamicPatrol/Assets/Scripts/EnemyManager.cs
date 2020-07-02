@@ -13,6 +13,7 @@ public class EnemyManager : MonoBehaviour
     public float sightResolution = 0.5f;
     public int edegeResolveIteration = 3;
     public float edgeDstThreshold = 0.5f;
+    public float reflectTime = 0.3f;
     public LayerMask obstacleMask;
 
     List<Enemy> freeEnemy = new List<Enemy>();
@@ -25,7 +26,7 @@ public class EnemyManager : MonoBehaviour
     {
         for (int i = 0; i < transform.childCount; i++) {
             freeEnemy.Add(transform.GetChild(i).GetComponent<Enemy>());
-            freeEnemy[i].InitInfo(this, moveSpeed, chaseSpeed, moveRotateSpeed, lookRotateSpeed, sightRadius, sightAngle);
+            freeEnemy[i].InitInfo(this);
             freeEnemy[i].gameObject.SetActive(false);
         }
     }
@@ -40,12 +41,12 @@ public class EnemyManager : MonoBehaviour
         
     }
 
-    public Enemy SpawnEnemyInPatrol(PatrolPath path) {
+    public Enemy SpawnEnemyInPatrol(PatrolPath path, PatrolManager patrolManager) {
         Debug.Log("spppppppppppppppppawn  ");
         Enemy enemy = freeEnemy[0];
         freeEnemy.RemoveAt(0);
         usedEnemy.Add(enemy);
-        enemy.SetPatrolPath(path);
+        enemy.SetPatrolPath(path, patrolManager);
         return enemy;
     }
 }

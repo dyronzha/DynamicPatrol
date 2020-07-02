@@ -29,6 +29,8 @@ public class PatrolManager : MonoBehaviour
     [Tooltip("動態改變時 與鄰近點比較的最大範圍距離")] public float dynamicConnectMaxLength = 5.0f;
     public LayerMask obstacleMask;
 
+    [HeaderAttribute("Test Value")]
+    public bool InTest = false;
     public Enemy testEnemy;
     public Player testPlayer;
 
@@ -112,20 +114,23 @@ public class PatrolManager : MonoBehaviour
         }
     }
 
+    List<Vector3> newPatrolPoint = new List<Vector3>();
+
     private void Awake()
     {
         enemyManager = GameObject.Find("EnemyManager").GetComponent<EnemyManager>();
-        PatrolGraphNode a = new PatrolGraphNode(0, 0);
-        List<PatrolGraphNode> aaa = new List<PatrolGraphNode>();
+        Vector3 a = new Vector3(0, 0, 0);
+        Vector3 b = new Vector3(100f, 0, 100f);
+        Vector3 c = new Vector3(100.000001f, 0, 100.000001f);
+
+        List<Vector3> aaa = new List<Vector3>();
         aaa.Add(a);
-        aaa.Add(new PatrolGraphNode(1, 1));
-        aaa.Add(a);
-        aaa.Add(a);
-        aaa.Add(new PatrolGraphNode(2, 2));
-        aaa.Add(a);
-        Debug.Log(aaa.Count);
-        Debug.Log(aaa.Count);
-        StartCoroutine(AAA());
+        aaa.Add(b);
+        aaa.Add(c);
+        Debug.Log(aaa.Contains(new Vector3(100,0,100)));
+        Debug.Log(aaa.Contains(b));
+        Debug.Log(aaa.Contains(c));
+        Debug.Log(aaa.IndexOf(c));
     }
 
     // Start is called before the first frame update
@@ -246,7 +251,8 @@ public class PatrolManager : MonoBehaviour
         }
         if (Input.GetKeyDown(KeyCode.Q))
         {
-            StartCoroutine(DynamicPatrol(testPlayer.position, testEnemy));
+            //StartCoroutine(DynamicPatrol(testPlayer.position, testEnemy));
+            RequestDynamicPatrol(new DynamicPatrolRequest(false, new Vector3(0,0,0), testEnemy),testPlayer.position, testEnemy);
         }
     }
 
@@ -2077,7 +2083,7 @@ public class PatrolManager : MonoBehaviour
                             if (currentLength > minPatrolLength) {
                                 //連接路線點
                                 Debug.Log("完成路線 ");
-                                PatrolPath path = new PatrolPath(true, patrolPoint, patrolGraph, turnDist);
+                                PatrolPath path = new PatrolPath(false, patrolPoint, patrolGraph, turnDist);
                                 for (int i = 0; i < patrolGraph.Count; i++)
                                 {
                                     Debug.Log("路線點 " + patrolGraph[i].pos + "  &  " + patrolPoint[i]);
@@ -2215,11 +2221,60 @@ public class PatrolManager : MonoBehaviour
         }
         for (int i = 0; i < patrolPathes.Count; i++)
         {
-            patrolPathes[i].SetEnemy(enemyManager.SpawnEnemyInPatrol(patrolPathes[i]));
+            patrolPathes[i].SetEnemy(enemyManager.SpawnEnemyInPatrol(patrolPathes[i], this));
         }
     }
 
-    IEnumerator DynamicPatrol(Vector3 detectPoint, Enemy enemy) {
+    bool isProcessingPath = false;
+    List<DynamicPatrolRequest> dynamicPatrolRequestList = new List<DynamicPatrolRequest>();
+    
+    public DynamicPatrolRequest RequestDynamicPatrol(DynamicPatrolRequest oldRequest, Vector3 detectPoint, Enemy enemy) {
+        bool tooClose = false;
+        for (int i = 0; i < newPatrolPoint.Count; i++) {
+            if ((detectPoint - newPatrolPoint[i]).sqrMagnitude < enemyManager.sightRadius * enemyManager.sightRadius) {
+                tooClose = true;
+                break;
+            }
+        }
+        DynamicPatrolRequest request = null;
+        if (tooClose)
+        {
+            request = new DynamicPatrolRequest(false, enemy.transform.position, enemy);
+        }
+        else {
+            request = new DynamicPatrolRequest(true, detectPoint, enemy);
+        }
+        if (dynamicPatrolRequestList.Contains(oldRequest))
+        {
+            dynamicPatrolRequestList[dynamicPatrolRequestList.IndexOf(oldRequest)] = request;
+        }
+        else dynamicPatrolRequestList.Add(request);
+        TryProcessNext();
+        return request;
+
+    }
+    public DynamicPatrolRequest RequestBackPatrol(DynamicPatrolRequest oldRequest, Vector3 selfPoint, Enemy enemy)
+    {
+        DynamicPatrolRequest request = new DynamicPatrolRequest(false, selfPoint, enemy);
+        if (dynamicPatrolRequestList.Contains(oldRequest))
+        {
+            dynamicPatrolRequestList[dynamicPatrolRequestList.IndexOf(oldRequest)] = request;
+        }
+        else dynamicPatrolRequestList.Add(request);
+        TryProcessNext();
+        return request;
+    }
+    void TryProcessNext()
+    {
+        if (!isProcessingPath && dynamicPatrolRequestList.Count > 0)
+        {
+            isProcessingPath = true;
+            DynamicPatrolRequest request = dynamicPatrolRequestList[0];
+            dynamicPatrolRequestList.RemoveAt(0);
+            if(request.dynamicPatrol) StartCoroutine(DynamicPatrol(request.detectPoint, request.enemy));
+        }
+    }
+    public IEnumerator DynamicPatrol(Vector3 detectPoint, Enemy enemy) {
         float leastLength;
         bool overlap = false;
         Enemy overlapEnemy;
@@ -2263,8 +2318,7 @@ public class PatrolManager : MonoBehaviour
             }
             if (overlap) break;
         }
-        
-        yield return null;
+        //yield return null;
         if (!overlap) {
 
             Debug.Log("nooooooooooooooooooooooooo overlap other enemy");
@@ -2283,7 +2337,7 @@ public class PatrolManager : MonoBehaviour
                 if (hits == null || hits.Length == 0)  //!Physics.Linecast(detectPoint, ConfirmGraph[i].pos, obstacleMask)
                 {
                     float dist = (detectPoint - ConfirmGraph[i].pos).sqrMagnitude;
-                    if (ConfirmGraph[i].detectNum > 0)
+                    if (ConfirmGraph[i].detectNum > 0 && !ConfirmGraph[i].branchNode)
                     {
                         if (ConfirmGraph[i].patrolPath.patrolEnemy.Equals(enemy))
                         {
@@ -2319,7 +2373,7 @@ public class PatrolManager : MonoBehaviour
             if (selfNearNode != null) Debug.Log("最近的點 " + selfNearNode.pos);
             else if(otherNearNode != null) Debug.Log("最近的點 " + otherNearNode.pos);
             else Debug.Log("沒有最近的點 ");
-            yield return null;
+            //yield return null;
 
             float branchLength = .0f;
             int connectID = -1;
@@ -2344,7 +2398,7 @@ public class PatrolManager : MonoBehaviour
                 if (otherNearNode != null)
                 {
                     //接到其他人的路線
-                    if (otherNearNode.detectNum > 0)
+                    if (otherNearNode.detectNum > 0 && !otherNearNode.branchNode)
                     {
                         connectID = otherNearNode.pathID;
                         firstConnectNode = otherNearNode;
@@ -2368,9 +2422,14 @@ public class PatrolManager : MonoBehaviour
                         currentRoute.Add(currentNode);
                         currentRoutePos.Add(currentNode.pos);
                         hasCouculateBeside.Add(new List<PatrolGraphNode>());
+                        int whileCount = 0;
                         while (true)
                         {
-                            yield return null;
+                            whileCount++;
+                            if (whileCount > 20) {
+                                whileCount = 0;
+                                yield return null;
+                            }
                             Debug.Log("路線 第 " + currentRoute.Count + " 個：" + currentNode.pos);
                             PatrolGraphNode node = null;
                             //遍歷每個連接點
@@ -2386,6 +2445,11 @@ public class PatrolManager : MonoBehaviour
                                 if (hasCouculateBeside[id].Contains(item.Key))
                                 {
                                     Debug.Log("該連接點已經算過 換下一個");
+                                    continue;
+                                }
+                                if (currentRoute.Contains(item.Key)) {
+                                    Debug.Log("該連接點接回計算路線");
+                                    hasCouculateBeside[id].Add(item.Key);
                                     continue;
                                 }
 
@@ -2514,13 +2578,17 @@ public class PatrolManager : MonoBehaviour
             //將新的分支接進現有路線
             if (branchRoute != null && branchRoute.Count > 0)
             {
-                List<PatrolGraphNode> newBranchNode = new List<PatrolGraphNode>();
+                List<PatrolGraphNode> newBranchNode = new List<PatrolGraphNode>(); //紀錄分支的節點，無順序
+                List<Vector3> newbranchPos = new List<Vector3>();//紀錄分支的點位置，無順序，不重複記
 
-                Debug.Log("connect node " + connectNode.pos);
-                branchRoutePos.Add(detectPoint);
+                Debug.Log("connect node " + connectNode.pos + "  " + firstConnectNode.pathID);
+                if ((selfNearNode != null ? selfLeastDist : otherLeastDist) > 0.5f) {
+                    branchRoutePos.Add(detectPoint);
+                    newbranchPos.Add(detectPoint);
+                }
                 Enemy dynamicEnemy = connectNode.patrolPath.patrolEnemy;
 
-                List<PatrolGraphNode> oringinPathGraph = dynamicEnemy.OringinPatrolPath.pathPatrolGraphNode;
+                List<PatrolGraphNode> oringinPathGraph = dynamicEnemy.OringinPatrolGraphNode;
 
                 //初始化原本路線是分支的部分，且沒有在新的分支裡
                 if (firstConnectNode.patrolPath.newBranchGraphNode != null)
@@ -2538,20 +2606,61 @@ public class PatrolManager : MonoBehaviour
                     }
                 }
 
-                //將分支路線來回先加進來 1->2->3->2->1
-                int lastLength = branchRoute.Count;
-                for (int i = lastLength - 1; i >= 0; i--)
-                {
-                    //將分支點標記
-                    if (i > 0)
+                bool tbranch = false;
+                Vector3 branchEnd = branchRoute[branchRoute.Count-1].pos;
+                if (!dynamicEnemy.OringinPath.CycleRoute &&  (connectID == 0 || connectID == oringinPathGraph.Count-1)) {
+                    if (connectID == 0)
                     {
-                        branchRoute[i].branchNode = true;
-                        newBranchNode.Add(branchRoute[i]);
+                        branchRoute.Reverse();
+                        branchRoutePos.Reverse();
+                        int lastLength = branchRoute.Count;
+                        for (int i = 0; i <= lastLength - 1; i++)
+                        {
+                            
+                            //將分支點標記
+                            if (i < lastLength - 1)
+                            {
+                                branchRoute[i].branchNode = true;
+                                newBranchNode.Add(branchRoute[i]);
+                            }
+                            newbranchPos.Add(branchRoute[i].pos);
+                        }
+                    }
+                    else
+                    {
+                        int lastLength = branchRoute.Count;
+                        for (int i = lastLength - 1; i >= 0; i--)
+                        {
+                            //將分支點標記
+                            if (i > 0)
+                            {
+                                branchRoute[i].branchNode = true;
+                                newBranchNode.Add(branchRoute[i]);
+                            }
+                            newbranchPos.Add(branchRoute[i].pos);
+                        }
+                    }
+                }
+                else
+                {
+                    //將分支路線來回先加進來 1->2->3->2->1
+                    tbranch = true;
+                    int lastLength = branchRoutePos.Count;
+                    for (int i = lastLength - 2; i >= 0; i--)
+                    {
+                        //將分支點標記
+                        if (i > 0)
+                        {
+                            branchRoute[i].branchNode = true;
+                            newBranchNode.Add(branchRoute[i]);
+                        }
+                        newbranchPos.Add(branchRoute[i].pos);
+
+                        //將回來的點重複再加進路線
+                        if (i <= lastLength - 2) branchRoute.Add(branchRoute[i]);
+                        branchRoutePos.Add(branchRoute[i].pos);
                     }
 
-                    //將回來的點重複再加進路線
-                    if (i <= lastLength - 2) branchRoute.Add(branchRoute[i]);
-                    branchRoutePos.Add(branchRoute[i].pos);
                 }
 
                 //將原有路線與分支做結合
@@ -2569,31 +2678,72 @@ public class PatrolManager : MonoBehaviour
                     }
                 }
 
-                for (int i = 0; i < branchRoutePos.Count; i++)
+                if (InTest)
                 {
-                    Debug.Log("新路線點 " + i + "  " + branchRoutePos[i]);
+                    for (int i = 0; i < branchRoutePos.Count; i++)
+                    {
+                        Debug.Log("新路線點 " + i + "  " + branchRoutePos[i]);
+                    }
+                    patrolPathes[patrolPathes.IndexOf(firstConnectNode.patrolPath)].RemoveBranchEndLook();
+                    PatrolPath path = new PatrolPath(firstConnectNode.patrolPath.CycleRoute, branchRoutePos, branchRoute, firstConnectNode.patrolPath.lookAroundPoints, newbranchPos, turnDist);
+                    path.SetNewBranchNode(newBranchNode);
+                    path.SetEnemy(dynamicEnemy);
+                    path.AddNewBranchEndLook(branchEnd);
+                    path.TBranch = tbranch;
+                    patrolPathes[patrolPathes.IndexOf(firstConnectNode.patrolPath)] = path;
+                    firstConnectNode.patrolPath.patrolEnemy.TestDynamicPatrol(path);
+                    for (int i = 0; i < branchRoute.Count; i++)
+                    {
+                        Debug.Log("路線點 " + branchRoute[i].pos + "   是不是分支 " + branchRoute[i].branchNode);
+                        branchRoute[i].detectNum = 1;
+                        branchRoute[i].patrolPath = path;
+                        //branchRoute[i].pathID = i;
+                    }
                 }
-                PatrolPath path = new PatrolPath(false, branchRoutePos, branchRoute, turnDist);
-                path.SetNewBranchNode(newBranchNode);
-                path.SetEnemy(dynamicEnemy);
-                patrolPathes[patrolPathes.IndexOf(firstConnectNode.patrolPath)] = path;
-                firstConnectNode.patrolPath.patrolEnemy.SearchUpdatePatrolPath(path);
-                for (int i = 0; i < branchRoute.Count; i++)
-                {
-                    Debug.Log("路線點 " + branchRoute[i].pos + "  &  " + branchRoute[i]);
-                    branchRoute[i].detectNum = 1;
-                    branchRoute[i].patrolPath = path;
-                    branchRoute[i].pathID = i;
-                }
+                else {
+                    for (int i = 0; i < branchRoutePos.Count; i++)
+                    {
+                        Debug.Log("新路線點 " + i + "  " + branchRoutePos[i]);
+                    }
+                    //刪掉原本多的巡視點
+                    patrolPathes[patrolPathes.IndexOf(firstConnectNode.patrolPath)].RemoveBranchEndLook();
+                    Vector3 point = patrolPathes[patrolPathes.IndexOf(firstConnectNode.patrolPath)].BranchEnd;
+                    if (newPatrolPoint.Contains(point)) newPatrolPoint.Remove(point);
 
+                    //新增新的路線，並做初始化
+                    PatrolPath path = new PatrolPath(firstConnectNode.patrolPath.CycleRoute, branchRoutePos, branchRoute, firstConnectNode.patrolPath.lookAroundPoints, newbranchPos, turnDist);
+                    path.SetNewBranchNode(newBranchNode);
+                    path.SetEnemy(dynamicEnemy);
+                    path.AddNewBranchEndLook(branchEnd);
+                    path.TBranch = tbranch;
+                    if (enemy.Equals(firstConnectNode.patrolPath.patrolEnemy)) enemy.SearchUpdatePatrolPath(path, firstConnectNode.patrolPath.patrolEnemy, DynamicPlanningPatrolRoute);
+                    else {
+                        firstConnectNode.patrolPath.patrolEnemy.SearchUpdatePatrolPath(path, firstConnectNode.patrolPath.patrolEnemy, DynamicPlanningPatrolRoute);
+                    }
+                    //enemy.SearchUpdatePatrolPath();
+                    for (int i = 0; i < branchRoute.Count; i++)
+                    {
+                        Debug.Log("路線點 " + branchRoute[i].pos + "   是不是分支 " + branchRoute[i].branchNode);
+                        branchRoute[i].detectNum = 1;
+                        branchRoute[i].patrolPath = path;
+                        //branchRoute[i].pathID = i;
+                    }
+                }
             }
             else {
                 Debug.Log("沒有新分支可以接");
             }
         }
+        isProcessingPath = false;
+        TryProcessNext();
     }
 
-    
+    public void DynamicPlanningPatrolRoute(PatrolPath oldPath, PatrolPath newPath) {
+        Debug.Log("更改 patrol path 清單  " + patrolPathes.Contains(oldPath));
+        patrolPathes[patrolPathes.IndexOf(oldPath)] = newPath;
+    }
+
+
     IEnumerator AAA() {
         StartCoroutine(DynamicPatrolToOther(new PatrolGraphNode(0,0)));
         yield return null;
@@ -2643,6 +2793,17 @@ public class PatrolManager : MonoBehaviour
     }
     public void SetSpreadStop(int x, int y) {
         spreadGrid[x, y].stop = true;
+    }
+}
+
+public class DynamicPatrolRequest {
+    public bool dynamicPatrol;
+    public Vector3 detectPoint;
+    public Enemy enemy;
+    public DynamicPatrolRequest(bool dynamic, Vector3 point, Enemy e) {
+        dynamicPatrol = dynamic;
+        detectPoint = point;
+        enemy = e;
     }
 }
 

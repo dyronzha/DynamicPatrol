@@ -10,6 +10,9 @@ public class PatrolPath
         get { return cycleType; }
     }
     bool reverse = false;
+    public bool Reverse {
+        get { return reverse; }
+    }
     int curPatrolPointID = 1;
     Path patrolPath;
     Path reversePath;
@@ -22,11 +25,14 @@ public class PatrolPath
 
     public List<PatrolManager.PatrolGraphNode> newBranchGraphNode;
 
-    int[] lookAroundPoints;
+    public bool TBranch = false;
+
+    public Dictionary<Vector3, int> lookAroundPoints = new Dictionary<Vector3, int>();
     public int LookAroundPoints(int id) {
-        //return lookAroundPoints[id];
-        return ((!reverse) ? (lookAroundPoints[id]) : (lookAroundPoints[lookAroundPoints.Length - 1 - id]));
+        if (lookAroundPoints.ContainsKey(curPatrolPath.lookPoints[id])) return lookAroundPoints[curPatrolPath.lookPoints[id]];
+        else return -1;
     }
+    //int[] lookAroundPoints;
 
     public Vector3 startPos {
         get { return curPatrolPath.lookPoints[0]; }
@@ -37,17 +43,35 @@ public class PatrolPath
         get { return enemy; }
     }
 
+    Vector3 branchEnd;
+    public Vector3 BranchEnd {
+        get { return branchEnd; }
+    }
+    public void AddNewBranchEndLook(Vector3 pos) {
+        branchEnd = pos;
+        if (!lookAroundPoints.ContainsKey(pos))
+        {
+            lookAroundPoints.Add(pos, 1);
+        }
+    }
+    public void RemoveBranchEndLook()
+    {
+        if (lookAroundPoints.ContainsKey(branchEnd))
+        {
+            lookAroundPoints.Remove(branchEnd);
+        }
+    }
+
     public PatrolPath(bool cycle, List<Vector3> patrolPoint, List<PatrolManager.PatrolGraphNode> patrolGraphNode, float turnDst) {
         reverse = false;
         curPatrolPointID = 1;
         cycleType = cycle;
-        lookAroundPoints = new int[patrolPoint.Count];
         pathPoints = patrolPoint;
         pathPatrolGraphNode = patrolGraphNode;
         bool lastLook = false;
         Vector3[] points = new Vector3[patrolPoint.Count];
         points[0] = patrolPoint[0];
-        points[patrolPoint.Count - 1] = patrolPoint[patrolPoint.Count - 1];
+        //points[patrolPoint.Count - 1] = patrolPoint[patrolPoint.Count - 1];
         for (int i = 1; i < patrolPoint.Count; i++) {
             float angle = .0f;
             if (i < patrolPoint.Count-1) angle = Vector3.Angle((patrolPoint[i] - patrolPoint[i - 1]), (patrolPoint[i + 1] - patrolPoint[i]));
@@ -60,12 +84,11 @@ public class PatrolPath
                 //如果不是繞圈，跟兩端點太近的節點也不選為旋轉點，或是上個點是旋轉的也是
                 if ((lastLook || (!cycle && (i == patrolPoint.Count - 2 || i == 1))) ? (length > 40.0f) : true)
                 {
-                    lookAroundPoints[i] = Random.Range(1, 3);
+                    lookAroundPoints.Add(patrolPoint[i], Random.Range(1, 3));
                     lastLook = true;
                 }
                 else
                 {
-                    lookAroundPoints[i] = 0;
                     lastLook = false;
                 }
             }
@@ -75,18 +98,16 @@ public class PatrolPath
                 //如果不是繞圈，跟兩端點太近的節點也不選為旋轉點，或是上個點是旋轉的也是
                 if ((lastLook || (!cycle && (i == patrolPoint.Count - 2 || i == 1))) ? (length > 40.0f) : true)
                 {
-                    lookAroundPoints[i] = Random.Range(1, 3);
+                    lookAroundPoints.Add(patrolPoint[i], Random.Range(1, 3));
                     lastLook = true;
                 }
                 else {
-                    lookAroundPoints[i] = 0;
                     lastLook = false;
                 }
 
             }
             else
             {
-                lookAroundPoints[i] = 0;
                 lastLook = false;
             }
             points[i] = patrolPoint[i];
@@ -97,21 +118,55 @@ public class PatrolPath
             patrolPath = new Path(points, turnDst);
         }
         else {
+            if(Random.Range(0.0f, 1.0f) < 0.3f) lookAroundPoints.Add(patrolPoint[0], Random.Range(1, 3));
+            //if (!patrolPoint.Contains(patrolPoint[patrolPoint.Count - 1])) lookAroundPoints.Add(patrolPoint[patrolPoint.Count - 1], 1);
+            patrolPath = new Path(points, turnDst);
+            System.Array.Reverse(points);
+            reversePath = new Path(points, turnDst);
+        }
+        curPatrolPath = patrolPath;
+    }
+    public PatrolPath(bool cycle, List<Vector3> patrolPoint, List<PatrolManager.PatrolGraphNode> patrolGraphNode,Dictionary<Vector3, int>lookAround,  List<Vector3> branchPos, float turnDst)
+    {
+        reverse = false;
+        curPatrolPointID = 1;
+        cycleType = cycle;
+        lookAroundPoints = lookAround;
+        pathPoints = patrolPoint;
+        pathPatrolGraphNode = patrolGraphNode;
+        bool lastLook = false;
+        Vector3[] points = new Vector3[patrolPoint.Count];
+        points[0] = patrolPoint[0];
+        points[patrolPoint.Count - 1] = patrolPoint[patrolPoint.Count - 1];
+        for (int i = 1; i < patrolPoint.Count; i++)
+        {
+            points[i] = patrolPoint[i];
+            if (branchPos.Contains(patrolPoint[i]) || branchPos.Contains(patrolPoint[i - 1])) continue;  //分支不做旋轉巡視
+            float angle = .0f;
+            if (i < patrolPoint.Count - 1) angle = Vector3.Angle((patrolPoint[i] - patrolPoint[i - 1]), (patrolPoint[i + 1] - patrolPoint[i]));
+            else angle = cycle ? Vector3.Angle((patrolPoint[i] - patrolPoint[i - 1]), (patrolPoint[1] - patrolPoint[i])) : 0.0f;
+        }
+
+        if (cycle)
+        {
+            patrolPath = new Path(points, turnDst);
+        }
+        else
+        {
             patrolPath = new Path(points, turnDst);
             System.Array.Reverse(points);
             reversePath = new Path(points, turnDst);
         }
         curPatrolPath = patrolPath;
 
-        for (int i = 0; i < lookAroundPoints.Length; i++) {
-            Debug.Log("look around point " + lookAroundPoints[i]);
-        }
     }
 
-    public void SetNewBranchNode(List<PatrolManager.PatrolGraphNode> nodes) {
+    public void SetNewBranchNode(List<PatrolManager.PatrolGraphNode> nodes)
+    {
         newBranchGraphNode = nodes;
     }
-    public void SetEnemy(Enemy _enemy) {
+    public void SetEnemy(Enemy _enemy)
+    {
         enemy = _enemy;
     }
 
@@ -130,21 +185,25 @@ public class PatrolPath
                     patrolPath = curPatrolPath;
                     reverse = !reverse;
 
-                    if (!reverse) lookAroundNum = lookAroundPoints[curPatrolPath.finishLineIndex];
-                    else lookAroundNum = lookAroundPoints[0]; 
+                    lookAroundNum = (lookAroundPoints.ContainsKey(curPatrolPath.lookPoints[0])) ? lookAroundPoints[curPatrolPath.lookPoints[0]] : 0;
+                    //if (!reverse) lookAroundNum = lookAroundPoints[curPatrolPath.lookPoints[0]];
+                    //else lookAroundNum = lookAroundPoints[curPatrolPath.lookPoints[0]]; 
                 }
                 else {
-                    lookAroundNum = lookAroundPoints[curPatrolPath.finishLineIndex];
+                    lookAroundNum = (lookAroundPoints.ContainsKey(curPatrolPath.lookPoints[curPatrolPath.finishLineIndex])) ? lookAroundPoints[curPatrolPath.lookPoints[curPatrolPath.finishLineIndex]] : 0;
                 }
                 nextPos = curPatrolPath.lookPoints[curPatrolPointID];
 
             }
             else
             {
+                lookAroundNum = (lookAroundPoints.ContainsKey(curPatrolPath.lookPoints[curPatrolPointID])) ? lookAroundPoints[curPatrolPath.lookPoints[curPatrolPointID]] : 0;
                 curPatrolPointID++;
                 nextPos = curPatrolPath.lookPoints[curPatrolPointID];
-                if(!reverse)lookAroundNum = lookAroundPoints[curPatrolPointID - 1];
-                else lookAroundNum = lookAroundPoints[lookAroundPoints.Length - curPatrolPointID];
+
+
+                //if(!reverse)lookAroundNum = lookAroundPoints[curPatrolPointID - 1];
+                //else lookAroundNum = lookAroundPoints[lookAroundPoints.Length - curPatrolPointID];
             }
             return true;
         }
@@ -152,5 +211,18 @@ public class PatrolPath
             nextPos = curPatrolPath.lookPoints[curPatrolPointID];
             return false;
         } 
+    }
+    public void SetPathReverse() {
+        curPatrolPath = reversePath;
+        reversePath = patrolPath;
+        patrolPath = curPatrolPath;
+        reverse = !reverse;
+    }
+    public Vector3  GetPathPoint(int id) {
+        Debug.Log(id);
+        return curPatrolPath.lookPoints[id];
+    }
+    public void SetPatrolPathID(int id) {
+        curPatrolPointID = id;
     }
 }
