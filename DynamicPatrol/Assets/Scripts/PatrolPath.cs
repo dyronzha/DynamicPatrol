@@ -170,6 +170,10 @@ public class PatrolPath
         enemy = _enemy;
     }
 
+    public void StartPatrolAtNewBranchEnd() {
+        curPatrolPointID = pathPoints.IndexOf(branchEnd);
+    }
+
     public bool MoveInPatrolRoute(Vector3 pos, ref Vector3 nextPos, ref int lookAroundNum)
     {
         Vector2 pos2D = new Vector2(pos.x, pos.z);

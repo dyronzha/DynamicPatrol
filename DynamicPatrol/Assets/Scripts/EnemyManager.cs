@@ -21,6 +21,10 @@ public class EnemyManager : MonoBehaviour
 
     public Player player;
 
+    public ConversationManager conversationManager;
+
+
+
     // Start is called before the first frame update
     private void Awake()
     {
@@ -29,6 +33,7 @@ public class EnemyManager : MonoBehaviour
             freeEnemy[i].InitInfo(this);
             freeEnemy[i].gameObject.SetActive(false);
         }
+        conversationManager = GameObject.Find("ConversationManager").GetComponent<ConversationManager>();
     }
     void Start()
     {

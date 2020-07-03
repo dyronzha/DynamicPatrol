@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
-    bool newPatrol = false, changingPath = false, searchRoute = false;
+    bool newPatrol = false, changingPath = false, findRoute = false, dynamicPatrol = false;
     int changingPathConnectID = -1;
     int stateStep = 0;
     float sightRadius, sightAngle;
@@ -43,12 +43,16 @@ public class Enemy : MonoBehaviour
     public MeshFilter viewMeshFilter;
     Mesh viewMesh;
 
+
     System.Action<PatrolPath, PatrolPath> DynamicChangingPathCBK = null;
+
+    bool conversation = false;
+
+    DynamicPatrolRequest curRequest = null;
 
     // Start is called before the first frame update
     private void Awake()
     {
-
     }
     void Start()
     {
@@ -136,6 +140,7 @@ public class Enemy : MonoBehaviour
                 break;
 
             case EnemyState.GoBackRoute:
+
                 break;
         }
         lastState = curState;
@@ -178,25 +183,65 @@ public class Enemy : MonoBehaviour
         patrolEnd = false;
     }
 
-    public void SearchUpdatePatrolPath(PatrolPath path, Enemy enemy, System.Action<PatrolPath, PatrolPath> pathChangingCBK) {
+    public void SearchUpdatePatrolPath(Vector3 newPatrolPoint, PatrolPath path, Enemy enemy, System.Action<PatrolPath, PatrolPath> pathChangingCBK) {
         
         if (this.Equals(enemy))
         {
-            newPatrol = true;
-            newPatrolPath = path;
+            //newPatrol = true;
+            //newPatrolPath = path;
+            //DynamicChangingPathCBK = pathChangingCBK;
+
+            //從新的巡邏點開始走
+            findRoute = true;
+            dynamicPatrol = true;
             patrolEnd = false;
-            DynamicChangingPathCBK = pathChangingCBK;
-            //ChangeState(EnemyState.Patrol);
-            //patrolPath = path;
+            newPatrolPath = path;
+            path.StartPatrolAtNewBranchEnd();
+            pathChangingCBK(patrolPath, newPatrolPath);
+            //patrolPath = newPatrolPath;
+
             //transform.position = path.startPos;
         }
         else {
+            //通知另一個敵人
+            conversation = true;
+            enemyManager.conversationManager.UseContent(transform, 0);
+            enemy.SetNewPatrolPath(newPatrolPoint, path, pathChangingCBK);
+
+            //自己走回路線
+            curRequest = patrolManager.RequestBackPatrol(curRequest, transform.position, this);
+
+            //newPatrol = true;
+            //newPatrolPath = path;
+            //patrolEnd = false;
+            //DynamicChangingPathCBK = pathChangingCBK;
+        }
+    }
+    public void SetNewPatrolPath(Vector3 newPatrolPoint, PatrolPath path, System.Action<PatrolPath, PatrolPath> pathChangingCBK) {
+        if (curState == EnemyState.Patrol || curState == EnemyState.lookAround)
+        {
+            conversation = true;
+            enemyManager.conversationManager.UseContent(transform, 1);
             newPatrol = true;
             newPatrolPath = path;
             patrolEnd = false;
             DynamicChangingPathCBK = pathChangingCBK;
         }
+        else
+        {
+            conversation = true;
+            enemyManager.conversationManager.UseContent(transform, 2);
+        }
+
     }
+
+    public void GoBackToRoute(PatrolPath path)
+    {
+        findRoute = true;
+        dynamicPatrol = false;
+        newPatrolPath = path;
+    }
+
 
     void ChangeState(EnemyState state) {
         if(state != EnemyState.Suspect) curLookNum = 0;
@@ -388,6 +433,9 @@ public class Enemy : MonoBehaviour
         Vector3 diff = new Vector3(0,0,0);
         if (stateStep == 0)
         {
+            //要求動態路徑
+            curRequest = patrolManager.RequestDynamicPatrol(curRequest, playerLastPos, this);
+
             diff = (playerLastPos - transform.position);
             if (diff.sqrMagnitude > 0.5f)
             {
@@ -399,7 +447,7 @@ public class Enemy : MonoBehaviour
                 stateStep++;
                 LSideLookDir = new Vector3(-transform.forward.z, 0, transform.forward.x);
                 RSideLookDir = new Vector3(transform.forward.z, 0, -transform.forward.x);
-                lookClockWay = Mathf.Sign(Vector3.SignedAngle(transform.forward, (Random.Range(.0f,1.0f) >= 0.5f ? LSideLookDir : RSideLookDir), Vector3.up));
+                lookClockWay = Mathf.Sign(Vector3.SignedAngle(transform.forward, (Random.Range(.0f, 1.0f) >= 0.5f ? LSideLookDir : RSideLookDir), Vector3.up));
 
             }
         }
@@ -427,7 +475,7 @@ public class Enemy : MonoBehaviour
                 if (curLookNum >= 3) {
                     lookClockWay = Mathf.Sign(Vector3.SignedAngle(transform.forward, -diff, Vector3.up));
                     stateStep = 4;
-                } 
+                }
             }
             //Debug.Log("第二階段 轉向  angle " + angle + "   " + RSideLookDir);
         }
@@ -441,19 +489,31 @@ public class Enemy : MonoBehaviour
                 stateStep = 1;
                 curLookNum++;
                 if (curLookNum >= 3) {
-                    lookClockWay = Mathf.Sign(Vector3.SignedAngle(transform.forward, -diff , Vector3.up));
+                    lookClockWay = Mathf.Sign(Vector3.SignedAngle(transform.forward, -diff, Vector3.up));
                     stateStep = 4;
-                } 
+                }
             }
         }
         else {
-            ChangeState(EnemyState.GoBackRoute);
+            if (findRoute) {
+                patrolPath = newPatrolPath;
+                if (dynamicPatrol) ChangeState(EnemyState.Patrol);
+                else ChangeState(EnemyState.GoBackRoute);
+            }
+
+
             //float angle = Vector3.SignedAngle(transform.forward, -diff, Vector3.up);
             //if (Mathf.Abs(angle) >= lookRotateSpeed * Time.deltaTime * 2.0f) transform.rotation *= Quaternion.Euler(0, lookClockWay * lookRotateSpeed * Time.deltaTime, 0);
             //else
             //{
             //    transform.rotation = Quaternion.LookRotation(-diff);
             //}
+        }
+    }
+
+    void GoingBackRoute() {
+        if (stateStep == 0) { 
+            
         }
     }
 
