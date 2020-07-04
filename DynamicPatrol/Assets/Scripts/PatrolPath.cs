@@ -62,6 +62,7 @@ public class PatrolPath
         }
     }
 
+    //第一次建立路線
     public PatrolPath(bool cycle, List<Vector3> patrolPoint, List<PatrolManager.PatrolGraphNode> patrolGraphNode, float turnDst) {
         reverse = false;
         curPatrolPointID = 1;
@@ -126,6 +127,8 @@ public class PatrolPath
         }
         curPatrolPath = patrolPath;
     }
+
+    //動態更新路線
     public PatrolPath(bool cycle, List<Vector3> patrolPoint, List<PatrolManager.PatrolGraphNode> patrolGraphNode,Dictionary<Vector3, int>lookAround,  List<Vector3> branchPos, float turnDst)
     {
         reverse = false;
@@ -161,6 +164,26 @@ public class PatrolPath
 
     }
 
+    //回原本路徑路線
+    public PatrolPath(List<Vector3> patrolPoint, List<PatrolManager.PatrolGraphNode> patrolGraphNode, float turnDst)
+    {
+        reverse = false;
+        curPatrolPointID = 1;
+        cycleType = false;
+        pathPoints = patrolPoint;
+        pathPatrolGraphNode = patrolGraphNode;
+        bool lastLook = false;
+        Vector3[] points = new Vector3[patrolPoint.Count];
+        points[0] = patrolPoint[0];
+        //points[patrolPoint.Count - 1] = patrolPoint[patrolPoint.Count - 1];
+        for (int i = 1; i < patrolPoint.Count; i++)
+        {
+            points[i] = patrolPoint[i];
+        }
+        patrolPath = new Path(points, turnDst);
+        curPatrolPath = patrolPath;
+    }
+
     public void SetNewBranchNode(List<PatrolManager.PatrolGraphNode> nodes)
     {
         newBranchGraphNode = nodes;
@@ -171,12 +194,15 @@ public class PatrolPath
     }
 
     public void StartPatrolAtNewBranchEnd() {
-        curPatrolPointID = pathPoints.IndexOf(branchEnd);
+        curPatrolPointID = pathPoints.IndexOf(branchEnd)+1;
     }
 
     public bool MoveInPatrolRoute(Vector3 pos, ref Vector3 nextPos, ref int lookAroundNum)
     {
         Vector2 pos2D = new Vector2(pos.x, pos.z);
+        //for (int i = 0; i < curPatrolPath.lookPoints.Length; i++) {
+        //    Debug.Log(curPatrolPath.lookPoints[i]);
+        //}
         if (curPatrolPath.turnBoundaries[curPatrolPointID].HasCrossedLine(pos2D))
         {
             if (curPatrolPointID == curPatrolPath.finishLineIndex)
@@ -216,6 +242,30 @@ public class PatrolPath
             return false;
         } 
     }
+
+    public bool MoveBackPatrolRoute(Vector3 pos, ref Vector3 nextPos)
+    {
+        Vector2 pos2D = new Vector2(pos.x, pos.z);
+        if (curPatrolPath.turnBoundaries[curPatrolPointID].HasCrossedLine(pos2D))
+        {
+            if (curPatrolPointID == curPatrolPath.finishLineIndex)
+            {
+                nextPos = curPatrolPath.lookPoints[curPatrolPointID];
+                return false;
+            }
+            else
+            {
+                curPatrolPointID++;
+                nextPos = curPatrolPath.lookPoints[curPatrolPointID];
+            }
+        }
+        else
+        {
+            nextPos = curPatrolPath.lookPoints[curPatrolPointID];
+        }
+        return true;
+    }
+
     public void SetPathReverse() {
         curPatrolPath = reversePath;
         reversePath = patrolPath;
