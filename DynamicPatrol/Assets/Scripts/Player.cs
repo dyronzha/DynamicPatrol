@@ -19,11 +19,15 @@ public class Player : MonoBehaviour
         get { return selfTransform.position; }
     }
 
+    PathFinder.PathFindGrid grid;
+
     // Start is called before the first frame update
     private void Awake()
     {
         selfTransform = transform;
         colliderRadius = transform.localScale.x*0.5f;
+
+        grid = GameObject.Find("PathfindGrid").GetComponent<PathFinder.PathFindGrid>();
 
     }
     void Start()
@@ -61,10 +65,12 @@ public class Player : MonoBehaviour
         float detectLength = Time.deltaTime * moveSpeed * collidResolution;
 
         Collider[] hHits = Physics.OverlapSphere(selfTransform.position + detectLength * new Vector3(hMove, 0, 0), colliderRadius, obstacleMask);
-        if (Mathf.Abs(hMove) > 0 && (hHits == null || hHits.Length == 0)) 
+        if (Mathf.Abs(hMove) > 0 && (hHits == null || hHits.Length == 0) && 
+            (selfTransform.position.x+ hMove*detectLength)> grid.MinBorderPoint.x && (selfTransform.position.x + hMove*detectLength) < grid.MaxBorderPoint.x) 
             perDiff += hMove * new Vector3(1, 0, 0);
         Collider[] vHits = Physics.OverlapSphere(selfTransform.position + detectLength * new Vector3(0, 0, vMove), colliderRadius, obstacleMask);
-        if (Mathf.Abs(vMove) > 0 && (vHits == null || vHits.Length == 0)) 
+        if (Mathf.Abs(vMove) > 0 && (vHits == null || vHits.Length == 0) &&
+            (selfTransform.position.z + vMove*detectLength) > grid.MinBorderPoint.z && (selfTransform.position.z + vMove*detectLength) < grid.MaxBorderPoint.z) 
             perDiff += vMove * new Vector3(0, 0, 1);
         //Debug.Log(perDiff);
 

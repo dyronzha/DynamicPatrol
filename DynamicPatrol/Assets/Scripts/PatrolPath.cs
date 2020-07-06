@@ -194,7 +194,18 @@ public class PatrolPath
     }
 
     public void StartPatrolAtNewBranchEnd() {
-        curPatrolPointID = pathPoints.IndexOf(branchEnd)+1;
+        curPatrolPointID = pathPoints.IndexOf(branchEnd);
+        if (curPatrolPointID >= pathPoints.Count - 1)
+        {
+            curPatrolPointID = 1;
+            reverse = true;
+        }
+        else if (curPatrolPointID == 0)
+        {
+            curPatrolPointID = 1;
+        }
+        else curPatrolPointID++;
+        Debug.Log("new start iddddddddd   " + curPatrolPointID);
     }
 
     public bool MoveInPatrolRoute(Vector3 pos, ref Vector3 nextPos, ref int lookAroundNum)
