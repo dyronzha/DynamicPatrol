@@ -5,6 +5,7 @@ using UnityEngine;
 public class Enemy : MonoBehaviour
 {
     bool newPatrol = false, changingPath = false, findRoute = false, waitProcess = false, dynamicPatrol = false;
+    bool renewPatroling = false;
     int changingPathConnectID = -1;
     int stateStep = 0;
     float sightRadius, sightAngle;
@@ -112,7 +113,7 @@ public class Enemy : MonoBehaviour
                 if (DetectPlayer()) Chasing();
                 else {
                     Debug.Log("lllllllllllllllllost  player  " + transform.forward);
-                    Debug.Break();
+                    //Debug.Break();
                     ChangeState(EnemyState.Search);
                 } 
                 break;
@@ -128,7 +129,7 @@ public class Enemy : MonoBehaviour
                     if (seePlayerTime >= reflectTime)
                     {
                         Debug.Log("suspecting ffind   player  " + transform.forward);
-                        Debug.Break();
+                        //Debug.Break();
                         ChangeState(EnemyState.Chase);
                         seePlayerTime = .0f;
                     }
@@ -183,7 +184,27 @@ public class Enemy : MonoBehaviour
         LSideLookDir = new Vector3(-transform.forward.z, 0, transform.forward.x);
         RSideLookDir = new Vector3(transform.forward.z, 0, -transform.forward.x);
     }
+    public void BeginRenewPatrol(bool hasStart) {
+        if (hasStart) {
+            patrolManager.RenewAllPatrol();
+            patrolManager.RequestNewPatrol(this, transform.position);
+        } 
+        else patrolManager.RequestNewPatrol(this, new Vector3(0, -500, 0));
+        if (curState == EnemyState.Patrol || curState == EnemyState.lookAround)
+        {
+            ChangeState(EnemyState.Search);
+        }
+        renewPatroling = true;
+        
+    }
+    public void RenewOringinPath(PatrolPath path) {
+        findRoute = true;
+        patrolPath = path;
+        oringinPath = path;
+        lastPatrolPath = path;
+        oringinPatrolGraphNode = path.pathPatrolGraphNode;
 
+    }
     public void TestDynamicPatrol(PatrolPath path) {
         lastPatrolPath = patrolPath;
         patrolPath = path;
@@ -501,19 +522,22 @@ public class Enemy : MonoBehaviour
             if (seePlayerTime > reflectTime) {
                 seePlayerTime = .0f;
                 Debug.Log("searching   find player  " + transform.forward);
-                Debug.Break();
+                //Debug.Break();
                 ChangeState(EnemyState.Chase);
-                if (waitProcess) {
-                    waitProcess = false;
-                    patrolManager.CancleRequest(curRequest, this);
-                }
-                if (findRoute)
-                {
-                    findRoute = false;
-                    patrolEnd = false;
-                    lastPatrolPath = patrolPath;
-                    patrolPath = newPatrolPath;
-                    passEnemy = null;
+                if (!renewPatroling) {
+                    if (waitProcess)
+                    {
+                        waitProcess = false;
+                        patrolManager.CancleRequest(curRequest, this);
+                    }
+                    if (findRoute)
+                    {
+                        findRoute = false;
+                        patrolEnd = false;
+                        lastPatrolPath = patrolPath;
+                        patrolPath = newPatrolPath;
+                        passEnemy = null;
+                    }
                 }
                 return;
             } 
@@ -541,9 +565,11 @@ public class Enemy : MonoBehaviour
         }
         else if (stateStep == 1) {
             //要求動態路徑
-            Debug.Log(transform.name + "  要求動態路徑 來自enemy.cs");
-            curRequest = patrolManager.RequestDynamicPatrol(curRequest, playerLastPos, this);
-            waitProcess = true;
+            if (!renewPatroling) {
+                Debug.Log(transform.name + "  要求動態路徑 來自enemy.cs");
+                curRequest = patrolManager.RequestDynamicPatrol(curRequest, playerLastPos, this);
+                waitProcess = true;
+            }
             stateStep++;
 
         }
@@ -599,24 +625,74 @@ public class Enemy : MonoBehaviour
                 Debug.Log("搜尋完  且找到路");
                 findRoute = false;
                 patrolEnd = false;
-                lastPatrolPath = patrolPath;
-                patrolPath = newPatrolPath;
-                if (dynamicPatrol) {
-                    enemyManager.conversationManager.UseContent(transform, 0);
-                    DynamicChangingPathCBK(this, patrolPath);
-                    ChangeState(EnemyState.Patrol);
-                } 
-                else {
-                    ChangeState(EnemyState.GoBackRoute);
-                    //有路線傳給其他敵人
-                    if (passEnemy != null) {
-                        enemyManager.conversationManager.UseContent(transform, 0);
-                        passEnemy.SetNewPatrolPath(passPoint, passPath, passCBK);
-                        passEnemy = null;
+                if (!renewPatroling)
+                {
+                    lastPatrolPath = patrolPath;
+                    patrolPath = newPatrolPath;
+                    if (!enemyManager.CountEnemyChangePath(this))
+                    {
+                        if (dynamicPatrol)
+                        {
+                            enemyManager.conversationManager.UseContent(transform, 0);
+                            DynamicChangingPathCBK(this, patrolPath);
+                            ChangeState(EnemyState.Patrol);
+                        }
+                        else
+                        {
+                            ChangeState(EnemyState.GoBackRoute);
+                            //有路線傳給其他敵人
+                            if (passEnemy != null)
+                            {
+                                enemyManager.conversationManager.UseContent(transform, 0);
+                                passEnemy.SetNewPatrolPath(passPoint, passPath, passCBK);
+                                passEnemy = null;
+                            }
+
+                        }
                     }
+                    else {
+                        stateStep = 2;
+                        curLookNum = 0;
+                    } 
+                }
+                else {
+                    renewPatroling = false;
+                    //看自己有沒有在新路線裡，如果沒有就要尋路
+                    bool inPatrol = false;
+                    int patrolID = 0;
+                    for (int i = 0; i < patrolPath.pathPoints.Count - 1; i++)
+                    {
+                        Vector3 pathDir = patrolPath.pathPoints[i + 1] - patrolPath.pathPoints[i];
+                        Vector3 pathDirNormal = pathDir.normalized;
+                        Vector3 pointDir = transform.position - patrolPath.pathPoints[i];
 
-                } 
+                        float length = Vector3.Cross(pathDirNormal, pointDir).magnitude;
+                        float lineDirLength = Vector3.Dot(pointDir, pathDirNormal);
 
+                        Debug.Log("lind dir " + pathDir);
+                        Debug.Log("length " + length);
+                        Debug.Log("lineDirLength " + lineDirLength);
+
+                        if (length < 1.0f && lineDirLength >= 0 && Mathf.Abs(lineDirLength) <= pathDir.magnitude)
+                        {
+                            Debug.Log("In new patrol path");
+                            inPatrol = true;
+                            patrolID = i + 1;
+                            break;
+                        }
+                    }
+                    if (inPatrol)
+                    {
+                        patrolPath.SetPatrolPathID(patrolID);
+                        ChangeState(EnemyState.Patrol);
+                    }
+                    else {
+                        patrolManager.RequestBackPatrol(null, transform.position, this);
+                        stateStep = 2;
+                        curLookNum = 0;
+                    } 
+                }
+                
             }
 
 

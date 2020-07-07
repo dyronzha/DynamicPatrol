@@ -23,6 +23,7 @@ public class EnemyManager : MonoBehaviour
 
     public ConversationManager conversationManager;
 
+    int changePathNum = 0;
 
 
     // Start is called before the first frame update
@@ -43,7 +44,6 @@ public class EnemyManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
     }
 
     public Enemy SpawnEnemyInPatrol(PatrolPath path, PatrolManager patrolManager) {
@@ -53,5 +53,21 @@ public class EnemyManager : MonoBehaviour
         usedEnemy.Add(enemy);
         enemy.SetPatrolPath(path, patrolManager);
         return enemy;
+    }
+
+    public bool CountEnemyChangePath(Enemy caller) {
+        changePathNum++;
+        if (changePathNum >= 5)
+        {
+            changePathNum = 0;
+            caller.BeginRenewPatrol(true);
+            for (int i = 0; i < usedEnemy.Count; i++)
+            {
+                if(!usedEnemy[i].Equals(caller))usedEnemy[i].BeginRenewPatrol(false);
+            }
+            return true;
+        }
+        else return false;
+
     }
 }
