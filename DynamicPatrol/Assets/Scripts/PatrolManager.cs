@@ -40,12 +40,16 @@ public class PatrolManager : MonoBehaviour
     public bool runConnectEnd = false;
 
     PathFindGrid pathFindGrid;
+    public PathFindGrid PathGrid {
+        get { return pathFindGrid; }
+    }
 
     EnemyManager enemyManager;
 
     [HideInInspector]
     public List<PatrolPath> patrolPathes = new List<PatrolPath>();
     Dictionary<Enemy, PatrolPath> patrolPatrolDic = new Dictionary<Enemy, PatrolPath>();
+    List<PatrolPath> firstPatrolPathes = new List<PatrolPath>();
 
     public class SpreadNode {
         public bool stop = false;
@@ -1776,7 +1780,7 @@ public class PatrolManager : MonoBehaviour
                 bool add = true;
                 while (add)
                 {
-                    yield return null;
+                    //yield return null;
 
                     //路線第一點
                     if (currentNode == null)
@@ -1788,7 +1792,7 @@ public class PatrolManager : MonoBehaviour
                         while (ConfirmGraph[id].detectNum > 0 || ConfirmGraph[id].besideNodes.Count <= 1 || uselessNode.Contains(ConfirmGraph[id]))
                         {
                             Debug.Log("路線開頭點為用過，且可連點小於1，且在無用清單 ");
-                            yield return null;
+                            //yield return null;
                             if (!uselessNode.Contains(ConfirmGraph[id])) uselessNode.Add(ConfirmGraph[id]);
                             id = Random.Range(0, ConfirmGraph.Count);
                         }
@@ -1979,6 +1983,7 @@ public class PatrolManager : MonoBehaviour
                                 }
                                 Debug.Log("路線點 " + patrolGraph[patrolGraph.Count - 1].pos + "  &  " + patrolPoint[patrolGraph.Count - 1]);
                                 patrolPathes.Add(path);
+                                firstPatrolPathes.Add(path);
                                 currentNode = null;
                                 cycleFail = 0;
                                 pathNum++;
@@ -2003,7 +2008,7 @@ public class PatrolManager : MonoBehaviour
                 bool add = true;
                 while (add)
                 {
-                    yield return null;
+                    //yield return null;
 
                     //路線第一點
                     if (currentNode == null)
@@ -2016,7 +2021,7 @@ public class PatrolManager : MonoBehaviour
                         while (ConfirmGraph[id].detectNum > 0)
                         {
                             Debug.Log("路線開頭點為用過 ");
-                            yield return null;
+                            //yield return null;
                             id = Random.Range(0, ConfirmGraph.Count);
                             count++;
                             if (count >= ConfirmGraph.Count) {
@@ -2103,6 +2108,7 @@ public class PatrolManager : MonoBehaviour
                                     patrolGraph[i].pathID = i;
                                 }
                                 patrolPathes.Add(path);
+                                firstPatrolPathes.Add(path);
                                 currentNode = null;
                                 pathNum++;
                                 break;
@@ -2220,6 +2226,7 @@ public class PatrolManager : MonoBehaviour
                                     patrolGraph[i].pathID = i;
                                 }
                                 patrolPathes.Add(path);
+                                firstPatrolPathes.Add(path);
                                 currentNode = null;
                                 pathNum++;
                                 break;
@@ -2230,6 +2237,9 @@ public class PatrolManager : MonoBehaviour
 
             }
         }
+
+        //通知gamemanager 有一個地圖已經連接好了
+        GameManager.hasCreatPath++;
     }
 
     public void SpawnEnemy() {
@@ -3167,6 +3177,35 @@ public class PatrolManager : MonoBehaviour
         }
         isProcessingPath = false;
         TryProcessNext();
+    }
+
+    public void ResetMap()
+    {
+        dynamicPatrolRequestList.Clear();
+        patrolPathes.Clear();
+        newPatrolPoint.Clear();
+        isProcessingPath = false;
+        processingEnemy = null;
+        for (int i = 0; i < ConfirmGraph.Count; i++)
+        {
+            ConfirmGraph[i].detectNum = 0;
+            ConfirmGraph[i].pathID = -1;
+            ConfirmGraph[i].branchNode = false;
+            ConfirmGraph[i].patrolPath = null;
+        }
+        for (int i = 0; i < firstPatrolPathes.Count; i++) {
+            PatrolPath path = firstPatrolPathes[i];
+            patrolPathes.Add(path);
+            path.ResetPath();
+            path.patrolEnemy.ResetMap(path);
+            if (patrolPatrolDic.ContainsKey(path.patrolEnemy)) patrolPatrolDic[path.patrolEnemy] = path;
+            for (int j = 0; j < path.pathPatrolGraphNode.Count; j++) {
+                path.pathPatrolGraphNode[j].detectNum = 1;
+                path.pathPatrolGraphNode[j].pathID = j;
+                path.pathPatrolGraphNode[j].patrolPath = path;
+            }
+        }
+
     }
 
     public void RenewAllPatrol() {

@@ -290,4 +290,13 @@ public class PatrolPath
     public void SetPatrolPathID(int id) {
         curPatrolPointID = id;
     }
+    public void ResetPath() {
+        curPatrolPointID = 1;
+        if (reverse) {
+            reverse = false;
+            curPatrolPath = reversePath;
+            reversePath = patrolPath;
+            patrolPath = curPatrolPath;
+        }
+    }
 }

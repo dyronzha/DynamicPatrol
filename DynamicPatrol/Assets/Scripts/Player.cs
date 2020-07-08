@@ -13,11 +13,15 @@ public class Player : MonoBehaviour
     public float moveSpeed = 5.0f;
     public float collidResolution = 1.2f;
     public LayerMask obstacleMask;
+    public LayerMask playerMask;
 
     Transform selfTransform;
     public Vector3 position {
         get { return selfTransform.position; }
     }
+
+    Vector3 minBorder;
+    Vector3 maxBorder;
 
     PathFinder.PathFindGrid grid;
 
@@ -27,7 +31,7 @@ public class Player : MonoBehaviour
         selfTransform = transform;
         colliderRadius = transform.localScale.x*0.5f;
 
-        grid = GameObject.Find("PathfindGrid").GetComponent<PathFinder.PathFindGrid>();
+        //grid = GameObject.Find("PathfindGrid").GetComponent<PathFinder.PathFindGrid>();
 
     }
     void Start()
@@ -38,8 +42,9 @@ public class Player : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (GameManager.pause) return;
         Move();
-        if (Input.GetKeyDown(KeyCode.Space)) visible = !visible;
+        if (Input.GetKeyDown(KeyCode.Z)) visible = !visible;
     }
     void Move() {
         int hMove = 0;
@@ -66,11 +71,11 @@ public class Player : MonoBehaviour
 
         Collider[] hHits = Physics.OverlapSphere(selfTransform.position + detectLength * new Vector3(hMove, 0, 0), colliderRadius, obstacleMask);
         if (Mathf.Abs(hMove) > 0 && (hHits == null || hHits.Length == 0) && 
-            (selfTransform.position.x+ hMove*detectLength)> grid.MinBorderPoint.x && (selfTransform.position.x + hMove*detectLength) < grid.MaxBorderPoint.x) 
+            (selfTransform.position.x+ hMove*detectLength)> minBorder.x && (selfTransform.position.x + hMove*detectLength) < grid.MaxBorderPoint.x) 
             perDiff += hMove * new Vector3(1, 0, 0);
         Collider[] vHits = Physics.OverlapSphere(selfTransform.position + detectLength * new Vector3(0, 0, vMove), colliderRadius, obstacleMask);
         if (Mathf.Abs(vMove) > 0 && (vHits == null || vHits.Length == 0) &&
-            (selfTransform.position.z + vMove*detectLength) > grid.MinBorderPoint.z && (selfTransform.position.z + vMove*detectLength) < grid.MaxBorderPoint.z) 
+            (selfTransform.position.z + vMove*detectLength) > minBorder.z && (selfTransform.position.z + vMove*detectLength) < grid.MaxBorderPoint.z) 
             perDiff += vMove * new Vector3(0, 0, 1);
         //Debug.Log(perDiff);
 
@@ -80,5 +85,11 @@ public class Player : MonoBehaviour
         if (hits == null || hits.Length == 0) {
             selfTransform.position = nextPos;
         }
+    }
+
+
+    public void SetBorder(Vector3 min, Vector3 max) {
+        minBorder = min;
+        maxBorder = max;
     }
 }

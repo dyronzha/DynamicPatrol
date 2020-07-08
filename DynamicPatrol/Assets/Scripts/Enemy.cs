@@ -69,10 +69,7 @@ public class Enemy : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
-        float a = Vector3.SignedAngle(transform.forward, new Vector3(-1, 0, 0), Vector3.up);
-        if (Input.GetKey(KeyCode.A)) transform.rotation *= Quaternion.Euler(0, Mathf.Sign(a) * 90.0f * Time.deltaTime, 0);
-        if (Input.GetKey(KeyCode.D)) transform.rotation *= Quaternion.Euler(0, Mathf.Sign(a) * -90.0f * Time.deltaTime, 0);
+        if (GameManager.pause) return;
         switch (curState) {
             case EnemyState.Patrol:
                 Patroling();
@@ -184,6 +181,29 @@ public class Enemy : MonoBehaviour
         LSideLookDir = new Vector3(-transform.forward.z, 0, transform.forward.x);
         RSideLookDir = new Vector3(transform.forward.z, 0, -transform.forward.x);
     }
+
+    public void RecycleReset() {
+        findRoute = false;
+        waitProcess = false;
+        dynamicPatrol = false;
+        curLookNum = 0;
+        transform.gameObject.SetActive(false);
+    }
+
+    public void ResetMap(PatrolPath path) {
+        ChangeState(EnemyState.Patrol);
+        patrolPath = path;
+        transform.position = path.startPos;
+        lastPathPoint = path.startPos;
+        transform.rotation = Quaternion.LookRotation(path.GetPathPoint(1) - lastPathPoint);
+        LSideLookDir = new Vector3(-transform.forward.z, 0, transform.forward.x);
+        RSideLookDir = new Vector3(transform.forward.z, 0, -transform.forward.x);
+        findRoute = false;
+        waitProcess = false;
+        dynamicPatrol = false;
+        curLookNum = 0;
+    }
+
     public void BeginRenewPatrol(bool hasStart) {
         if (hasStart) {
             patrolManager.RenewAllPatrol();
@@ -506,6 +526,7 @@ public class Enemy : MonoBehaviour
         }
         else {
             Debug.Log("gotccccccchhhhhhhaaaaaa  gameover");
+            enemyManager.CatchPlayer();
         }
     }
 

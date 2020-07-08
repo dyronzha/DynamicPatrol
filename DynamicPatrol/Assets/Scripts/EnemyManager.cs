@@ -22,6 +22,7 @@ public class EnemyManager : MonoBehaviour
     public Player player;
 
     public ConversationManager conversationManager;
+    public GameManager gameManager;
 
     int changePathNum = 0;
 
@@ -38,7 +39,7 @@ public class EnemyManager : MonoBehaviour
     }
     void Start()
     {
-        
+
     }
 
     // Update is called once per frame
@@ -63,11 +64,23 @@ public class EnemyManager : MonoBehaviour
             caller.BeginRenewPatrol(true);
             for (int i = 0; i < usedEnemy.Count; i++)
             {
-                if(!usedEnemy[i].Equals(caller))usedEnemy[i].BeginRenewPatrol(false);
+                if (!usedEnemy[i].Equals(caller)) usedEnemy[i].BeginRenewPatrol(false);
             }
             return true;
         }
         else return false;
 
+    }
+
+    public void RecycleAllEnemy() {
+        for (int i = usedEnemy.Count - 1; i >= 0; i--) {
+            usedEnemy[i].RecycleReset();
+            freeEnemy.Add(usedEnemy[i]);
+            usedEnemy.RemoveAt(i);
+        }
+    }
+
+    public void CatchPlayer() {
+        gameManager.CountPlayerDead();
     }
 }
