@@ -120,18 +120,7 @@ public class PatrolManager : MonoBehaviour
     private void Awake()
     {
         enemyManager = GameObject.Find("EnemyManager").GetComponent<EnemyManager>();
-        Vector3 a = new Vector3(0, 0, 0);
-        Vector3 b = new Vector3(100f, 0, 100f);
-        Vector3 c = new Vector3(100.000001f, 0, 100.000001f);
 
-        List<Vector3> aaa = new List<Vector3>();
-        aaa.Add(a);
-        aaa.Add(b);
-        aaa.Add(c);
-        Debug.Log(aaa.Contains(new Vector3(100, 0, 100)));
-        Debug.Log(aaa.Contains(b));
-        Debug.Log(aaa.Contains(c));
-        Debug.Log(aaa.IndexOf(c));
     }
 
     // Start is called before the first frame update
@@ -211,6 +200,18 @@ public class PatrolManager : MonoBehaviour
                 }
             }
         }
+
+        if (!InTest) {
+            while (!skip) {
+                CouculateGrid();
+            }
+            DeleteBranch();
+            DeleteExtraNode();
+            CouculateGraphCross();
+            CouculateGraphTurn();
+            skipRun = true;
+            StartCoroutine(ConactGraph());
+        }
     }
 
     // Update is called once per frame
@@ -218,44 +219,52 @@ public class PatrolManager : MonoBehaviour
     {
         //return;
 
-        if (Input.GetKeyDown(KeyCode.Space)) {
+        if (InTest) {
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
 
-            CouculateGrid();
-        }
-        if (Input.GetKeyDown(KeyCode.Z)) {
-            int count = 0;
-            while (!skip) {
-                count++;
-                Debug.Log("CHOOSEN NUMBER " + choosenNode.Count);
                 CouculateGrid();
-                if (count > 10000) break;
             }
+            if (Input.GetKeyDown(KeyCode.Z))
+            {
+                int count = 0;
+                while (!skip)
+                {
+                    count++;
+                    Debug.Log("CHOOSEN NUMBER " + choosenNode.Count);
+                    CouculateGrid();
+                    if (count > 10000) break;
+                }
+            }
+            if (Input.GetKeyDown(KeyCode.X))
+            {
+                DeleteBranch();
+            }
+            if (Input.GetKeyDown(KeyCode.C))
+            {
+                DeleteExtraNode();
+            }
+            if (Input.GetKeyDown(KeyCode.V))
+            {
+                CouculateGraphCross();
+                CouculateGraphTurn();
+            }
+            if (Input.GetKeyDown(KeyCode.B))
+            {
+                StartCoroutine(ConactGraph());
+            }
+            if (Input.GetKeyDown(KeyCode.P))
+            {
+                skipRun = true;
+            }
+            if (Input.GetKeyDown(KeyCode.Q))
+            {
+                //RequestDynamicPatrol(new DynamicPatrolRequest(false, new Vector3(0,0,0), testEnemy),testPlayer.position, testEnemy);
+                if (testEnemy != null) testEnemy.InTestSetSearch(testPlayer.position);
+            }
+            if (Input.GetKeyDown(KeyCode.W)) enemyManager.CountEnemyChangePath(testEnemy);
         }
-        if (Input.GetKeyDown(KeyCode.X))
-        {
-            DeleteBranch();
-        }
-        if (Input.GetKeyDown(KeyCode.C)) {
-            DeleteExtraNode();
-        }
-        if (Input.GetKeyDown(KeyCode.V))
-        {
-            CouculateGraphCross();
-            CouculateGraphTurn();
-        }
-        if (Input.GetKeyDown(KeyCode.B))
-        {
-            StartCoroutine(ConactGraph());
-        }
-        if (Input.GetKeyDown(KeyCode.P)) {
-            skipRun = true;
-        }
-        if (Input.GetKeyDown(KeyCode.Q))
-        {
-            //RequestDynamicPatrol(new DynamicPatrolRequest(false, new Vector3(0,0,0), testEnemy),testPlayer.position, testEnemy);
-            if (testEnemy != null) testEnemy.InTestSetSearch(testPlayer.position);
-        }
-        if (Input.GetKeyDown(KeyCode.W)) enemyManager.CountEnemyChangePath(testEnemy);
+        
     }
 
     void CouculateGrid() {
@@ -2221,6 +2230,9 @@ public class PatrolManager : MonoBehaviour
 
             }
         }
+    }
+
+    public void SpawnEnemy() {
         for (int i = 0; i < patrolPathes.Count; i++)
         {
             Enemy enemy = enemyManager.SpawnEnemyInPatrol(patrolPathes[i], this);
@@ -3472,14 +3484,6 @@ public class PatrolManager : MonoBehaviour
         else patrolPatrolDic.Add(enemy, patrolPathes[patrolPathes.Count - 1]);
         isProcessingPath = false;
         TryProcessNext();
-    }
-
-
-
-    IEnumerator AAA() {
-        StartCoroutine(DynamicPatrolToOther(new PatrolGraphNode(0,0)));
-        yield return null;
-        StartCoroutine(DynamicPatrolToOther(new PatrolGraphNode(100, 100)));
     }
 
     IEnumerator DynamicPatrolToOther(PatrolGraphNode connectNode) {
