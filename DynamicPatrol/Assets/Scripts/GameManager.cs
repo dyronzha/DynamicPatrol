@@ -4,17 +4,18 @@ using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
-    public bool InTest = false;
     public Camera MainCamera;
     public EnemyManager enemyManager;
     public Player player;
+    public int playerTotalLife = 3;
     public Transform GameMap;
     public UnityEngine.UI.Text canvasInfo;
     public UnityEngine.UI.Image canvasInfoBG;
-
+    public UnityEngine.UI.Text playerLife;
+    public LayerMask goalLayerMask;
 
     bool init = false;
-    int mapCount = 0;
+    int mapCount = 0, allMapNum = 0;
     Transform[] gameMaps;
     Vector3[] startPos, exitPos;
     PatrolManager[] mapPatrolManager;
@@ -29,6 +30,11 @@ public class GameManager : MonoBehaviour
     System.Action blackEndCBK, blackShowCBK;
     void Blank() { }
 
+    [HeaderAttribute("Test Value")]
+    public bool InTest = false;
+    public Enemy testEnemy;
+    public Player testPlayer;
+
     // Start is called before the first frame update
     private void Awake()
     {
@@ -39,6 +45,8 @@ public class GameManager : MonoBehaviour
         exitPos = new Vector3[gameMaps.Length];
         mapPatrolManager = new PatrolManager[gameMaps.Length];
         for (int i = 0; i < gameMaps.Length; i++) {
+            if (!GameMap.GetChild(i).gameObject.activeSelf) continue;
+            allMapNum++;
             Debug.Log(GameMap.GetChild(i).name);
             gameMaps[i] = GameMap.GetChild(i);
             startPos[i] = gameMaps[i].Find("StartPos").position;
@@ -47,14 +55,14 @@ public class GameManager : MonoBehaviour
             mapPatrolManager[i] = gameMaps[i].Find("PathfindGrid").GetComponent<PatrolManager>();
             mapPatrolManager[i].InTest = InTest;
         }
-        blackEndCBK = ShowInfo;
+        blackEndCBK = Blank; //ShowInfo;
         blackShowCBK = Blank;
         canvasInfo.enabled = false;
         canvasInfoBG.enabled = false;
     }
     void Start()
     {
-        blackEndCBK();
+        player.transform.position = startPos[0];
     }
 
     // Update is called once per frame
@@ -62,18 +70,20 @@ public class GameManager : MonoBehaviour
     {
         if (!init)
         {
-            if (hasCreatPath >= gameMaps.Length) {
+            if (hasCreatPath >= allMapNum) {
                 init = true;
                 mapPatrolManager[mapCount].SpawnEnemy();
                 player.SetBorder(mapPatrolManager[mapCount].PathGrid.MinBorderPoint, mapPatrolManager[mapCount].PathGrid.MaxBorderPoint);
                 canvasAnimator.Play("BlackFadeIn");
+                canvasInfo.enabled = true;
+                canvasInfoBG.enabled = true;
             }
 
         }
         else {
             if (!hasStart)
             {
-                if (Input.GetKeyDown(KeyCode.Space))
+                if (Input.GetKeyDown(KeyCode.Space) || InTest)
                 {
                     hasStart = true;
                     pause = false;
@@ -87,24 +97,46 @@ public class GameManager : MonoBehaviour
             }
             
         }
+
+        if (InTest) {
+            if (Input.GetKeyDown(KeyCode.Q))
+            {
+                //RequestDynamicPatrol(new DynamicPatrolRequest(false, new Vector3(0,0,0), testEnemy),testPlayer.position, testEnemy);
+                if (testEnemy != null) testEnemy.InTestSetSearch(testPlayer.position);
+            }
+            if (Input.GetKeyDown(KeyCode.W)) {
+                if (enemyManager.CheckEnemyChangePathCount())
+                {
+                    enemyManager.ChangeAllEnemyPath(testEnemy);
+                }
+            }
+        }
     }
 
     void DetectPlayerGoal() {
-        Collider[] hits = Physics.OverlapBox(exitPos[mapCount], new Vector3(1.2f, 2.0f, 0.8f), Quaternion.identity, player.playerMask);
+        if (pause) return;
+        Collider[] hits = Physics.OverlapSphere(player.transform.position, 0.5f, goalLayerMask);
         if (hits != null && hits.Length > 0) {
-            pause = true;
-            canvasInfo.text = "Next Round";
-            canvasInfo.enabled = true;
-            canvasInfoBG.enabled = true;
-            blackShowCBK = SkipToNextRound;
-            canvasAnimator.Play("BlackFadeOut");
+            if (mapCount < gameMaps.Length)
+            {
+                pause = true;
+                canvasInfo.text = "Next Round";
+                canvasInfo.enabled = true;
+                canvasInfoBG.enabled = true;
+                blackShowCBK = SkipToNextRound;
+                canvasAnimator.Play("BlackFadeOut");
+            }
+            else { 
+                //遊戲結束
+            }
             
         }
     }
 
     public void CountPlayerDead() {
         playerDeathCount++;
-        if (playerDeathCount >= 3)
+        playerLife.text = "Life: " + (playerTotalLife - playerDeathCount).ToString();
+        if (playerDeathCount >= playerTotalLife)
         {
             playerDeathCount = 0;
             pause = true;
@@ -148,6 +180,7 @@ public class GameManager : MonoBehaviour
         MainCamera.transform.position = new Vector3(mapPatrolManager[mapCount].transform.position.x, MainCamera.transform.position.y, mapPatrolManager[mapCount].transform.position.z);
         player.transform.position = new Vector3(startPos[mapCount].x, 0, startPos[mapCount].z);
         canvasInfo.text = "PRESS  SPACE  TO  START";
+        playerLife.text = "Life: " + (playerTotalLife).ToString();
         hasStart = false;
     }
 

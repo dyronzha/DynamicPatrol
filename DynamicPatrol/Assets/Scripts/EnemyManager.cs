@@ -10,6 +10,7 @@ public class EnemyManager : MonoBehaviour
     public float lookRotateSpeed = 180.0f;
     public float sightRadius = 5.0f;
     public float sightAngle = 70.0f;
+    public float senseRadius= 1.5f;
     public float sightResolution = 0.5f;
     public int edegeResolveIteration = 3;
     public float edgeDstThreshold = 0.5f;
@@ -25,7 +26,7 @@ public class EnemyManager : MonoBehaviour
     public GameManager gameManager;
 
     int changePathNum = 0;
-
+    bool allChange = false;
 
     // Start is called before the first frame update
     private void Awake()
@@ -56,23 +57,27 @@ public class EnemyManager : MonoBehaviour
         return enemy;
     }
 
-    public bool CountEnemyChangePath(Enemy caller) {
+    public bool CheckEnemyChangePathCount() {
         changePathNum++;
         if (changePathNum >= 5)
         {
-            changePathNum = 0;
-            caller.BeginRenewPatrol(true);
-            for (int i = 0; i < usedEnemy.Count; i++)
-            {
-                if (!usedEnemy[i].Equals(caller)) usedEnemy[i].BeginRenewPatrol(false);
-            }
             return true;
         }
         else return false;
 
     }
+    public void ChangeAllEnemyPath(Enemy caller) {
+        changePathNum = 0;
+        Debug.Log("Change all enemy path  ");
+        caller.BeginRenewPatrol(true);
+        for (int i = 0; i < usedEnemy.Count; i++)
+        {
+            if (!usedEnemy[i].Equals(caller)) usedEnemy[i].BeginRenewPatrol(false);
+        }
+    }
 
     public void RecycleAllEnemy() {
+        changePathNum = 0;
         for (int i = usedEnemy.Count - 1; i >= 0; i--) {
             usedEnemy[i].RecycleReset();
             freeEnemy.Add(usedEnemy[i]);
@@ -81,6 +86,7 @@ public class EnemyManager : MonoBehaviour
     }
 
     public void CatchPlayer() {
+        changePathNum = 0;
         gameManager.CountPlayerDead();
     }
 }

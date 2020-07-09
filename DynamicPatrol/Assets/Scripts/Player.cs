@@ -23,7 +23,7 @@ public class Player : MonoBehaviour
     Vector3 minBorder;
     Vector3 maxBorder;
 
-    PathFinder.PathFindGrid grid;
+    //PathFinder.PathFindGrid grid;
 
     // Start is called before the first frame update
     private void Awake()
@@ -71,11 +71,11 @@ public class Player : MonoBehaviour
 
         Collider[] hHits = Physics.OverlapSphere(selfTransform.position + detectLength * new Vector3(hMove, 0, 0), colliderRadius, obstacleMask);
         if (Mathf.Abs(hMove) > 0 && (hHits == null || hHits.Length == 0) && 
-            (selfTransform.position.x+ hMove*detectLength)> minBorder.x && (selfTransform.position.x + hMove*detectLength) < grid.MaxBorderPoint.x) 
+            (selfTransform.position.x+ hMove*detectLength)> minBorder.x && (selfTransform.position.x + hMove*detectLength) < maxBorder.x) 
             perDiff += hMove * new Vector3(1, 0, 0);
         Collider[] vHits = Physics.OverlapSphere(selfTransform.position + detectLength * new Vector3(0, 0, vMove), colliderRadius, obstacleMask);
         if (Mathf.Abs(vMove) > 0 && (vHits == null || vHits.Length == 0) &&
-            (selfTransform.position.z + vMove*detectLength) > minBorder.z && (selfTransform.position.z + vMove*detectLength) < grid.MaxBorderPoint.z) 
+            (selfTransform.position.z + vMove*detectLength) > minBorder.z && (selfTransform.position.z + vMove*detectLength) < maxBorder.z) 
             perDiff += vMove * new Vector3(0, 0, 1);
         //Debug.Log(perDiff);
 

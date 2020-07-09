@@ -55,7 +55,7 @@ public class ConversationContent {
     SpriteRenderer renderender;
     Transform follow;
     float blankTime = -1.0f, countBlank = .0f;
-
+    bool blankOnce = false;
     float lifeTime = .0f;
 
     public ConversationContent(Transform t, ConversationManager m) {
@@ -74,9 +74,10 @@ public class ConversationContent {
     public void StartFollow(Sprite sprite, Transform f, float blank)
     {
         blankTime = blank;
+        countBlank = .0f;
+        blankOnce = false;
         transform.position = new Vector3(f.position.x, transform.position.y, f.position.z);
         follow = f;
-        animator.Play("ShowUp");
         lifeTime = .0f;
         renderender.sprite = sprite;
     }
@@ -86,6 +87,10 @@ public class ConversationContent {
 
             if (countBlank <= blankTime) countBlank += Time.deltaTime;
             else {
+                if (!blankOnce) {
+                    blankOnce = true;
+                    animator.Play("ShowUp");
+                }
                 lifeTime += Time.deltaTime;
                 transform.position = new Vector3(follow.position.x, transform.position.y, follow.position.z);
                 if (lifeTime > 1.0f)

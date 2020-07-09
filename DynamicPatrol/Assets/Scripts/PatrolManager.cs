@@ -31,8 +31,8 @@ public class PatrolManager : MonoBehaviour
 
     [HeaderAttribute("Test Value")]
     public bool InTest = false;
-    public Enemy testEnemy;
-    public Player testPlayer;
+    //public Enemy testEnemy;
+    //public Player testPlayer;
 
     [HideInInspector]
     public int maxChoosenWeight = 0;
@@ -261,12 +261,7 @@ public class PatrolManager : MonoBehaviour
             {
                 skipRun = true;
             }
-            if (Input.GetKeyDown(KeyCode.Q))
-            {
-                //RequestDynamicPatrol(new DynamicPatrolRequest(false, new Vector3(0,0,0), testEnemy),testPlayer.position, testEnemy);
-                if (testEnemy != null) testEnemy.InTestSetSearch(testPlayer.position);
-            }
-            if (Input.GetKeyDown(KeyCode.W)) enemyManager.CountEnemyChangePath(testEnemy);
+
         }
         
     }
@@ -2977,7 +2972,7 @@ public class PatrolManager : MonoBehaviour
             }
         }
 
-        if (nearNode != null) Debug.Log("最近的點 " + nearNode.pos);
+        if (nearNode != null) Debug.Log("最近的點 " + nearNode.pos + "  is self:" + connectSelf);
         else Debug.Log("沒有最近的點 ");
 
         float branchLength = .0f;
@@ -3032,7 +3027,7 @@ public class PatrolManager : MonoBehaviour
                     foreach (KeyValuePair<PatrolManager.PatrolGraphNode, float> item in currentNode.besideNodes)
                     {
                         count++;
-                        Debug.Log("遍歷 第" + count + " 個連接點：" + item.Key.pos);
+                        Debug.Log( enemy.transform.name +  "  遍歷 第" + count + " 個連接點：" + item.Key.pos);
 
                         int id = hasCouculateBeside.Count - 1;
                         if (hasCouculateBeside[id].Count >= currentNode.besideNodes.Count)
@@ -3209,12 +3204,13 @@ public class PatrolManager : MonoBehaviour
     }
 
     public void RenewAllPatrol() {
-        if (isProcessingPath) StopCoroutine(pathFindcoroutine);
+        if (isProcessingPath && pathFindcoroutine!=null) StopCoroutine(pathFindcoroutine);
         dynamicPatrolRequestList.Clear();
         patrolPathes.Clear();
         newPatrolPoint.Clear();
         isProcessingPath = false;
         processingEnemy = null;
+        Debug.Log("clearclearclearclearclearclearclearclearclearclearclearclearclearclearclearclearclearclearclearclearclearclearclearclearclearclearclear");
         for (int i = 0; i < ConfirmGraph.Count; i++) {
             ConfirmGraph[i].detectNum = 0;
             ConfirmGraph[i].pathID = -1;
@@ -3517,11 +3513,17 @@ public class PatrolManager : MonoBehaviour
 
             }
         }
+
+        Debug.Log(enemy.transform.name + "  " + patrolPathes[patrolPathes.Count - 1].GetPathPoint(0));
         enemy.RenewOringinPath(patrolPathes[patrolPathes.Count - 1]);
         patrolPathes[patrolPathes.Count-1].SetEnemy(enemy);
         if (patrolPatrolDic.ContainsKey(enemy)) patrolPatrolDic[enemy] = patrolPathes[patrolPathes.Count - 1];
         else patrolPatrolDic.Add(enemy, patrolPathes[patrolPathes.Count - 1]);
         isProcessingPath = false;
+        for (int i = 0; i < patrolGraph.Count; i++)
+        {
+            Debug.Log("路線點 " + patrolGraph[i].pos + "  enemy " + patrolGraph[i].patrolPath.patrolEnemy + "   first pos" + patrolGraph[i].patrolPath.pathPoints[0]);
+        }
         TryProcessNext();
     }
 

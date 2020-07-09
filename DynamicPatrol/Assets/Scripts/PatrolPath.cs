@@ -214,6 +214,7 @@ public class PatrolPath
         //for (int i = 0; i < curPatrolPath.lookPoints.Length; i++) {
         //    Debug.Log(curPatrolPath.lookPoints[i]);
         //}
+        if (curPatrolPath.turnBoundaries[curPatrolPointID] == null) Debug.Log(patrolEnemy.transform.name + "  is retard ");
         if (curPatrolPath.turnBoundaries[curPatrolPointID].HasCrossedLine(pos2D))
         {
             if (curPatrolPointID == curPatrolPath.finishLineIndex)
@@ -257,6 +258,14 @@ public class PatrolPath
     public bool MoveBackPatrolRoute(Vector3 pos, ref Vector3 nextPos)
     {
         Vector2 pos2D = new Vector2(pos.x, pos.z);
+
+        if (curPatrolPath.lookPoints.Length < 2) {
+            Vector3 diff = curPatrolPath.lookPoints[0] - pos;
+            nextPos = curPatrolPath.lookPoints[0];
+            if (diff.sqrMagnitude < 0.1f) return true;
+            else return false;
+        }
+
         if (curPatrolPath.turnBoundaries[curPatrolPointID].HasCrossedLine(pos2D))
         {
             if (curPatrolPointID == curPatrolPath.finishLineIndex)
