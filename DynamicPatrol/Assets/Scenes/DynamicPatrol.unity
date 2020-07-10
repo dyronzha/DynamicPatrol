@@ -8423,9 +8423,9 @@ MonoBehaviour:
   leastTurnDstNum: 6
   connectTime: 0
   maxConnectAngle: 20
-  minPatrolLength: 8
-  maxPatrolLength: 15
-  maxPathNum: 5
+  minPatrolLength: 20
+  maxPatrolLength: 25
+  maxPathNum: 3
   patrolCycleFailNum: 0
   patrolRepeatNum: 0
   turnDist: 1
