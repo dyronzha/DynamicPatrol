@@ -40,20 +40,26 @@ public class GameManager : MonoBehaviour
     {
         canvasAnimator = GetComponent<Animator>();
 
-        gameMaps = new Transform[GameMap.childCount];
+        int activeMapCount = 0;
+        for (int i = 0; i < GameMap.childCount; i++) {
+            if (!GameMap.GetChild(i).gameObject.activeSelf) continue;
+            activeMapCount++;
+        }
+
+        gameMaps = new Transform[activeMapCount];
         startPos = new Vector3[gameMaps.Length];
         exitPos = new Vector3[gameMaps.Length];
         mapPatrolManager = new PatrolManager[gameMaps.Length];
-        for (int i = 0; i < gameMaps.Length; i++) {
+        for (int i = 0; i < GameMap.childCount; i++) {
             if (!GameMap.GetChild(i).gameObject.activeSelf) continue;
-            allMapNum++;
             Debug.Log(GameMap.GetChild(i).name);
-            gameMaps[i] = GameMap.GetChild(i);
-            startPos[i] = gameMaps[i].Find("StartPos").position;
-            Debug.Log(gameMaps[i].Find("Exit").name);
-            exitPos[i] = gameMaps[i].Find("Exit").position;
-            mapPatrolManager[i] = gameMaps[i].Find("PathfindGrid").GetComponent<PatrolManager>();
-            mapPatrolManager[i].InTest = InTest;
+            gameMaps[allMapNum] = GameMap.GetChild(i);
+            startPos[allMapNum] = gameMaps[allMapNum].Find("StartPos").position;
+            exitPos[allMapNum] = gameMaps[allMapNum].Find("Exit").position;
+            mapPatrolManager[allMapNum] = gameMaps[allMapNum].Find("PathfindGrid").GetComponent<PatrolManager>();
+            mapPatrolManager[allMapNum].InTest = InTest;
+            mapPatrolManager[allMapNum].startPos = startPos[allMapNum];
+            allMapNum++;
         }
         blackEndCBK = Blank; //ShowInfo;
         blackShowCBK = Blank;
@@ -63,6 +69,7 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         player.transform.position = startPos[0];
+        MainCamera.transform.position = new Vector3(mapPatrolManager[mapCount].transform.position.x, MainCamera.transform.position.y, mapPatrolManager[mapCount].transform.position.z);
     }
 
     // Update is called once per frame
@@ -98,6 +105,8 @@ public class GameManager : MonoBehaviour
             
         }
 
+        if (Input.GetKeyDown(KeyCode.Q)) NextRound();
+
         if (InTest) {
             if (Input.GetKeyDown(KeyCode.Q))
             {
@@ -131,6 +140,17 @@ public class GameManager : MonoBehaviour
             }
             
         }
+    }
+
+    void NextRound() {
+        playerDeathCount = 0;
+        pause = true;
+        canvasInfo.text = "Next Round";
+        canvasInfo.enabled = true;
+        canvasInfoBG.enabled = true;
+        blackShowCBK = SkipToNextRound;
+        //blackEndCBK = BlackEndPlay;
+        canvasAnimator.Play("BlackFadeOut");
     }
 
     public void CountPlayerDead() {
