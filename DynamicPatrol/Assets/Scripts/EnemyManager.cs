@@ -89,4 +89,23 @@ public class EnemyManager : MonoBehaviour
         changePathNum = 0;
         gameManager.CountPlayerDead();
     }
+
+    public void ThrowAttention(Vector3 point, float range) {
+        float leastDst = float.MaxValue;
+        Enemy enemy = null;
+        for (int i = 0; i < usedEnemy.Count; i++) {
+            float dst = (usedEnemy[i].transform.position - point).magnitude;
+            if (dst < range && !Physics.Linecast(point, usedEnemy[i].transform.position, obstacleMask) && 
+                (usedEnemy[i].CurrentState == Enemy.EnemyState.Patrol || usedEnemy[i].CurrentState == Enemy.EnemyState.lookAround || usedEnemy[i].CurrentState == Enemy.EnemyState.GoBackRoute)
+                ) {
+                usedEnemy[i].SuspectByThrow(point);
+                if ( dst < leastDst) {
+                    leastDst = dst;
+                    enemy = usedEnemy[i];
+                }
+            }
+        }
+        if(enemy != null)enemy.AttentionByThrow(point);
+
+    }
 }

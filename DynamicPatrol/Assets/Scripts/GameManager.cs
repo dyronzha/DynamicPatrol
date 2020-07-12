@@ -70,11 +70,41 @@ public class GameManager : MonoBehaviour
     {
         player.transform.position = startPos[0];
         MainCamera.transform.position = new Vector3(mapPatrolManager[mapCount].transform.position.x, MainCamera.transform.position.y, mapPatrolManager[mapCount].transform.position.z);
+        if (InTest) {
+            pause = false;
+            canvasAnimator.Play("BlackFadeIn");
+        } 
     }
 
     // Update is called once per frame
     void Update()
     {
+        if (InTest)
+        {
+            if (Input.GetKeyDown(KeyCode.O))
+            {
+                //RequestDynamicPatrol(new DynamicPatrolRequest(false, new Vector3(0,0,0), testEnemy),testPlayer.position, testEnemy);
+                if (testEnemy != null) testEnemy.InTestSetSearch(testPlayer.position);
+            }
+            if (Input.GetKeyDown(KeyCode.P))
+            {
+                if (enemyManager.CheckEnemyChangePathCount())
+                {
+                    enemyManager.ChangeAllEnemyPath(testEnemy);
+                }
+            }
+            if (!init)
+            {
+                if (hasCreatPath >= allMapNum)
+                {
+                    init = true;
+                    mapPatrolManager[mapCount].SpawnEnemy();
+                }
+            }
+            if(Input.GetKeyDown(KeyCode.Space)) player.SetBorder(mapPatrolManager[mapCount].PathGrid.MinBorderPoint, mapPatrolManager[mapCount].PathGrid.MaxBorderPoint);
+            return;
+        }
+
         if (!init)
         {
             if (hasCreatPath >= allMapNum) {
@@ -104,53 +134,58 @@ public class GameManager : MonoBehaviour
             }
             
         }
-
         if (Input.GetKeyDown(KeyCode.Q)) NextRound();
 
-        if (InTest) {
-            if (Input.GetKeyDown(KeyCode.Q))
-            {
-                //RequestDynamicPatrol(new DynamicPatrolRequest(false, new Vector3(0,0,0), testEnemy),testPlayer.position, testEnemy);
-                if (testEnemy != null) testEnemy.InTestSetSearch(testPlayer.position);
-            }
-            if (Input.GetKeyDown(KeyCode.W)) {
-                if (enemyManager.CheckEnemyChangePathCount())
-                {
-                    enemyManager.ChangeAllEnemyPath(testEnemy);
-                }
-            }
-        }
+       
     }
 
     void DetectPlayerGoal() {
         if (pause) return;
         Collider[] hits = Physics.OverlapSphere(player.transform.position, 0.5f, goalLayerMask);
         if (hits != null && hits.Length > 0) {
-            if (mapCount < gameMaps.Length)
+            if (mapCount < gameMaps.Length-1)
             {
                 pause = true;
+                player.ResetThrowthing();
                 canvasInfo.text = "Next Round";
                 canvasInfo.enabled = true;
                 canvasInfoBG.enabled = true;
                 blackShowCBK = SkipToNextRound;
                 canvasAnimator.Play("BlackFadeOut");
             }
-            else { 
+            else {
                 //遊戲結束
+                pause = true;
+                canvasInfo.text = "Game Over";
+                canvasInfo.enabled = true;
+                canvasInfoBG.enabled = true;
+                //blackShowCBK = SkipToNextRound;
+                canvasAnimator.Play("BlackFadeOut");
             }
             
         }
     }
 
     void NextRound() {
-        playerDeathCount = 0;
-        pause = true;
-        canvasInfo.text = "Next Round";
-        canvasInfo.enabled = true;
-        canvasInfoBG.enabled = true;
-        blackShowCBK = SkipToNextRound;
-        //blackEndCBK = BlackEndPlay;
-        canvasAnimator.Play("BlackFadeOut");
+        if (mapCount < gameMaps.Length - 1)
+        {
+            playerDeathCount = 0;
+            player.ResetThrowthing();
+            pause = true;
+            canvasInfo.text = "Next Round";
+            canvasInfo.enabled = true;
+            canvasInfoBG.enabled = true;
+            blackShowCBK = SkipToNextRound;
+            canvasAnimator.Play("BlackFadeOut");
+        }
+        else {
+            pause = true;
+            canvasInfo.text = "Game Over";
+            canvasInfo.enabled = true;
+            canvasInfoBG.enabled = true;
+            //blackShowCBK = SkipToNextRound;
+            canvasAnimator.Play("BlackFadeOut");
+        }
     }
 
     public void CountPlayerDead() {
@@ -158,15 +193,26 @@ public class GameManager : MonoBehaviour
         playerLife.text = "Life: " + (playerTotalLife - playerDeathCount).ToString();
         if (playerDeathCount >= playerTotalLife)
         {
-            playerDeathCount = 0;
-            pause = true;
-            canvasInfo.text = "Next Round";
-            canvasInfo.enabled = true;
-            canvasInfoBG.enabled = true;
-            blackShowCBK = SkipToNextRound;
-            //blackEndCBK = BlackEndPlay;
-            canvasAnimator.Play("BlackFadeOut");
-            
+            if (mapCount < gameMaps.Length - 1) {
+                playerDeathCount = 0;
+                pause = true;
+                canvasInfo.text = "Next Round";
+                canvasInfo.enabled = true;
+                canvasInfoBG.enabled = true;
+                blackShowCBK = SkipToNextRound;
+                //blackEndCBK = BlackEndPlay;
+                canvasAnimator.Play("BlackFadeOut");
+            }
+            else
+            {
+                pause = true;
+                canvasInfo.text = "Game Over";
+                canvasInfo.enabled = true;
+                canvasInfoBG.enabled = true;
+                //blackShowCBK = SkipToNextRound;
+                canvasAnimator.Play("BlackFadeOut");
+            }
+
         }
         else {
             pause = true;
@@ -190,6 +236,7 @@ public class GameManager : MonoBehaviour
     void PlayerDeadReset() {
         pause = false;
         mapPatrolManager[mapCount].ResetMap();
+        player.ResetThrowthing();
         player.transform.position = startPos[mapCount];
     }
     void SkipToNextRound() {

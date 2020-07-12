@@ -262,7 +262,7 @@ public class PatrolManager : MonoBehaviour
             {
                 StartCoroutine(ConactGraph());
             }
-            if (Input.GetKeyDown(KeyCode.P))
+            if (Input.GetKeyDown(KeyCode.N))
             {
                 skipRun = true;
             }
@@ -1343,13 +1343,6 @@ public class PatrolManager : MonoBehaviour
                     ((hits == null ? false : (hits.Length > 0)) ||
                     (Vector2.Angle(lastDir, connectNeighbor.pos - detectNode.pos) > maxConnectAngle) && (connectLength - lastLength) > leastTurnDstNum))
                 {
-                    sourcePos = pathFindGrid.GetNodePos(lastTurnNode.pos.x, lastTurnNode.pos.y);
-                    hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (connectPos - sourcePos)), 0), obstacleMask);
-                    if (hits == null ? false : (hits.Length > 0)) {
-                        lastTurnNode = detectNode;
-                        lastLength += currentLength;
-                        connectLength -= currentLength;
-                    }
                     if (!confirmGraphNodeDic.ContainsKey(lastTurnNode.pos))
                     {
                         Debug.Log("尚未有該轉折點");
@@ -1460,10 +1453,7 @@ public class PatrolManager : MonoBehaviour
                 }
                 else {
                     //與來原點之間有碰撞，或與上一個轉折點角度太大，加入上一個轉折點
-                    //Vector3 center = 0.5f*(pathFindGrid.GetNodePos(sourceNode.pos.x, sourceNode.pos.y) + pathFindGrid.GetNodePos(connectNeighbor.pos.x, connectNeighbor.pos.y));
-                    //float length = (pathFindGrid.GetNodePos(sourceNode.pos.x, sourceNode.pos.y) - pathFindGrid.GetNodePos(connectNeighbor.pos.x, connectNeighbor.pos.y))
-                    //Physics.OverlapBox(center, new Vector3( ,1.0f, leastNarrow))
-                    Debug.Log("source node  " + sourceNode.pos);
+                    Debug.Log("source node  " + sourceNode.pos + "     lasturn Node " + lastTurnNode.pos);
                     Debug.Log(" angle " + (Vector2.Angle(lastDir, connectNeighbor.pos - lastTurnNode.pos)));
                     Debug.Log(" connect length " + (connectLength - lastLength));
                     Debug.Log(" lastLength " + lastLength);
@@ -1479,16 +1469,7 @@ public class PatrolManager : MonoBehaviour
                     if ((hits == null ? false : (hits.Length > 0)) ||
                         (Vector2.Angle(lastDir, connectNeighbor.pos - lastTurnNode.pos) > maxConnectAngle && (connectLength - lastLength) > leastTurnDstNum && (lastLength > leastTurnDstNum))) //
                     {
-                        sourcePos = pathFindGrid.GetNodePos(lastTurnNode.pos.x, lastTurnNode.pos.y);
-                        halfExtent = new Vector3((center - sourcePos).magnitude, 1.0f, leastNarrow);
-                        hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (connectPos - sourcePos)), 0), obstacleMask);
-                        if (hits == null ? false : (hits.Length > 0))
-                        {
-                            lastTurnNode = detectNode;
-                            lastLength += currentLength;
-                            connectLength -= currentLength;
-                        }
-
+                       
                         if (!confirmGraphNodeDic.ContainsKey(lastTurnNode.pos))
                         {
                             Debug.Log("尚未有該轉折點");
@@ -1518,6 +1499,46 @@ public class PatrolManager : MonoBehaviour
                         //else lastTurnNode = null;
                         lastLength = connectLength;
                         Debug.Log("轉折點改為    " + lastTurnNode.pos);
+
+                        //檢查新lasturn和source的碰撞
+                        sourcePos = pathFindGrid.GetNodePos(sourceNode.pos.x, sourceNode.pos.y);
+                        connectPos = pathFindGrid.GetNodePos(lastTurnNode.pos.x, lastTurnNode.pos.y);
+                        center = 0.5f * (sourcePos + connectPos);
+                        halfExtent = new Vector3((center - sourcePos).magnitude, 1.0f, leastNarrow);
+                        hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (connectPos - sourcePos)), 0), obstacleMask);
+                        if (hits == null ? false : (hits.Length > 0) && detectNode != null)
+                        {
+                            Debug.Log("lasturn和source的碰撞  " + lastTurnNode.pos + "   " + sourceNode.pos);
+                            lastLength = (connectLength - currentLength);
+                            connectLength = currentLength;
+
+                            if (!confirmGraphNodeDic.ContainsKey(detectNode.pos))
+                            {
+                                Debug.Log("尚未有該轉折點");
+                                nextNode = new PatrolGraphNode(detectNode.pos.x, detectNode.pos.y);
+                                nextNode.turnNode = true;
+                                nextNode.pos = pathFindGrid.GetNodePos(nextNode.x, nextNode.y);
+                                ConfirmGraph.Add(nextNode);
+                                confirmGraphNodeDic.Add(detectNode.pos, nextNode);
+                            }
+                            //已有
+                            else
+                            {
+                                Debug.Log("已有該轉折點");
+                                nextNode = confirmGraphNodeDic[detectNode.pos];
+                            }
+                            float middleDst = (confirmGraphNodeDic[sourceNode.pos].pos - nextNode.pos).magnitude;
+                            Debug.Log("新連接 " + sourceNode.pos + " ---> " + detectNode.pos + "  length" + middleDst);
+                            //將來源點加進上個轉折點的連接點裡
+                            nextNode.besideNodes.Add(confirmGraphNodeDic[sourceNode.pos], middleDst);
+                            //將上個轉折點加進來原點的連接點裡
+                            confirmGraphNodeDic[sourceNode.pos].besideNodes.Add(nextNode, middleDst);
+                            lastDir = new Vector2Int(connectNeighbor.pos.x - detectNode.pos.x, connectNeighbor.pos.y - detectNode.pos.y);
+                            sourceNode = detectNode;
+                            lastLength = connectLength;
+                            Debug.Log("轉折點改為    " + lastTurnNode.pos);
+                        }
+
                     }
                     else if ((connectLength - lastLength) > leastTurnDstNum || lastLength < leastTurnDstNum)
                     {
@@ -1600,12 +1621,12 @@ public class PatrolManager : MonoBehaviour
                     {
                         sourcePos = pathFindGrid.GetNodePos(lastTurnNode.pos.x, lastTurnNode.pos.y);
                         hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (connectPos - sourcePos)), 0), obstacleMask);
-                        if (hits == null ? false : (hits.Length > 0))
-                        {
-                            lastTurnNode = detectNode;
-                            lastLength += currentLength;
-                            connectLength -= currentLength;
-                        }
+                        //if (hits == null ? false : (hits.Length > 0))
+                        //{
+                        //    lastTurnNode = detectNode;
+                        //    lastLength += currentLength;
+                        //    connectLength -= currentLength;
+                        //}
                         if (!confirmGraphNodeDic.ContainsKey(lastTurnNode.pos))
                         {
                             Debug.Log("尚未有該轉折點");
@@ -1797,9 +1818,10 @@ public class PatrolManager : MonoBehaviour
 
                         int count = 0;
                         //路線開頭點不能為用過，且可連點大於1，且沒在無用清單
-                        while (ConfirmGraph[id].detectNum > 0 || ConfirmGraph[id].besideNodes.Count <= 1 || uselessNode.Contains(ConfirmGraph[id]))
+                        while (ConfirmGraph[id].detectNum > 0 || ConfirmGraph[id].besideNodes.Count <= 1 || uselessNode.Contains(ConfirmGraph[id]) || 
+                            ((ConfirmGraph[id].pos - startPos).sqrMagnitude < dstFromStart * dstFromStart && !Physics.Linecast(ConfirmGraph[id].pos, startPos, obstacleMask))  )
                         {
-                            Debug.Log("路線開頭點為用過，且可連點小於1，且在無用清單 ");
+                            Debug.Log("路線開頭點為用過，且可連點小於1，且在無用清單，且離開始點太近 ");
                             //yield return null;
                             if (!uselessNode.Contains(ConfirmGraph[id])) uselessNode.Add(ConfirmGraph[id]);
                             id = Random.Range(0, ConfirmGraph.Count);
@@ -2045,7 +2067,7 @@ public class PatrolManager : MonoBehaviour
 
                         //路線開頭點不能為用過，且可連點大於1，且沒在無用清單
                         int count = 0;
-                        while (ConfirmGraph[id].detectNum > 0)
+                        while (ConfirmGraph[id].detectNum > 0 || ((ConfirmGraph[id].pos - startPos).sqrMagnitude < dstFromStart * dstFromStart && !Physics.Linecast(ConfirmGraph[id].pos, startPos, obstacleMask)))
                         {
                             Debug.Log("路線開頭點為用過 ");
                             //yield return null;
@@ -2303,8 +2325,6 @@ public class PatrolManager : MonoBehaviour
         }
     }
     public DynamicPatrolRequest RequestDynamicPatrol(DynamicPatrolRequest oldRequest, Vector3 detectPoint, Enemy enemy) {
-        if (!dynamicPatrolSystem) return RequestBackPatrol(oldRequest, enemy.transform.position, enemy);
-        
         Debug.Log(enemy.transform.name + "  要求動態新路徑 馴鹿  " + detectPoint);
 
         if (isProcessingPath && enemy.Equals(processingEnemy)) {
@@ -2754,7 +2774,10 @@ public class PatrolManager : MonoBehaviour
                     Vector3 dir2 = branchRoutePos[c - 2] - branchRoutePos[c - 1];
 
                     float a = Vector3.Angle(dir1, dir2);
-                    if (a > 110f && !Physics.Linecast(branchRoutePos[c - 2], branchRoutePos[c], obstacleMask))
+                    Vector3 center = 0.5f * (branchRoutePos[c - 2] + branchRoutePos[c]);
+                    Vector3 halfExtent = new Vector3((center - branchRoutePos[c]).magnitude, 1.0f, leastNarrow);
+                    Collider[] hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (branchRoutePos[c - 2] - branchRoutePos[c])), 0), obstacleMask);
+                    if (a > 110f && (hits == null || hits.Length == 0)) //!Physics.Linecast(branchRoutePos[c - 2], branchRoutePos[c], obstacleMask
                     {
                         Debug.Log(" 偵測位置在該線段，會造成重複走  所以移除  " + branchRoutePos[c - 1] + "  route " + branchRoute[c - 1].pos);
                         branchRoutePos.RemoveAt(c - 1);
