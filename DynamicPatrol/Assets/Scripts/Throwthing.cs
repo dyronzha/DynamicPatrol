@@ -42,16 +42,19 @@ public class Throwthing : MonoBehaviour
     {
         if (!stop)
         {
-            transform.position += speed * Time.deltaTime * flyDir;
             speed -= slower * Time.deltaTime;
-            slower += 15.0f * Time.deltaTime;
+            slower += 2.0f * Time.deltaTime;
+            transform.position += speed * Time.deltaTime * flyDir;
+
             Collider[] hits = Physics.OverlapSphere(transform.position, 0.25f, obstacleMask);
             if (hits != null && hits.Length > 0)
             {
-                speed = maxSpeed;
+                lifeTime = .0f;
+                //speed = maxSpeed;
                 stop = true;
                 lineRender.enabled = true;
                 mesh.enabled = false;
+
                 for (int i = 0; i < 12; i++)
                 {
                     Vector3 pos;
@@ -67,12 +70,11 @@ public class Throwthing : MonoBehaviour
                 enemyManager.ThrowAttention(transform.position, senseRange);
             }
             else {
-                if (speed < 0.2f)
+                if (speed < 10f)
                 {
-                    speed = maxSpeed;
-                    stop = true;
+                    //speed = maxSpeed;
                     lineRender.enabled = true;
-                    mesh.enabled = false;
+                    //mesh.enabled = false;
                     for (int i = 0; i < 12; i++)
                     {
                         Vector3 pos;
@@ -86,13 +88,29 @@ public class Throwthing : MonoBehaviour
                         lineRender.SetPosition(i, pos);
                     }
                     enemyManager.ThrowAttention(transform.position, senseRange);
+                    if(speed < 2.0f) stop = true;
                 }
             }
             
         }
         else {
+            for (int i = 0; i < 12; i++)
+            {
+                Vector3 pos;
+                Vector3 rayDir = (Quaternion.Euler(0, 30.0f * i, 0) * Vector3.forward);
+                RaycastHit hit;
+                if (Physics.Raycast(transform.position, rayDir, out hit, senseRange, obstacleMask))
+                {
+                    pos = hit.point;
+                }
+                else pos = transform.position + senseRange * rayDir;
+                lineRender.SetPosition(i, pos);
+            }
+            enemyManager.ThrowAttention(transform.position, senseRange);
+
             lifeTime += Time.deltaTime;
             if (lifeTime > totalLifeTime) {
+                speed = maxSpeed;
                 lifeTime = .0f;
                 stop = false;
                 lineRender.enabled = false;
@@ -101,7 +119,7 @@ public class Throwthing : MonoBehaviour
                 player.RecycleThrowThing(this);
             }
         }
-
+        
     }
 
     public void SetThrow(Vector3 pos, Vector3 dir) {
@@ -110,6 +128,7 @@ public class Throwthing : MonoBehaviour
         gameObject.SetActive(true);
         stop = false;
         flyDir = dir;
+        lifeTime = .0f;
     }
 
     public void ForceRecycle() {

@@ -199,6 +199,9 @@ public class PatrolPath
         {
             curPatrolPointID = 1;
             reverse = true;
+            curPatrolPath = reversePath;
+            reversePath = patrolPath;
+            patrolPath = curPatrolPath;
         }
         else if (curPatrolPointID == 0)
         {

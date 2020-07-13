@@ -1,0 +1,33 @@
+{
+	"dynamicFirst": false,
+    "NormalTime": [
+        123.66011047363281,
+        30.49431037902832,
+        103.63782501220703
+    ],
+    "DynamicTime": [
+        144.02174377441407,
+        100.47525024414063,
+        59.136287689208987
+    ],
+    "NormalDeadNum": [
+        2,
+        0,
+        2
+    ],
+    "DynamicDeadNum": [
+        4,
+        3,
+        1
+    ],
+    "NormalThrowNum": [
+        5,
+        3,
+        5
+    ],
+    "DynamicThrowNum": [
+        3,
+        4,
+        5
+    ]
+}

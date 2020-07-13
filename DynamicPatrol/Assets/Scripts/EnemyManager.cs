@@ -96,16 +96,18 @@ public class EnemyManager : MonoBehaviour
         for (int i = 0; i < usedEnemy.Count; i++) {
             float dst = (usedEnemy[i].transform.position - point).magnitude;
             if (dst < range && !Physics.Linecast(point, usedEnemy[i].transform.position, obstacleMask) && 
-                (usedEnemy[i].CurrentState == Enemy.EnemyState.Patrol || usedEnemy[i].CurrentState == Enemy.EnemyState.lookAround || usedEnemy[i].CurrentState == Enemy.EnemyState.GoBackRoute)
+                (usedEnemy[i].CurrentState == Enemy.EnemyState.Patrol || usedEnemy[i].CurrentState == Enemy.EnemyState.lookAround || 
+                usedEnemy[i].CurrentState == Enemy.EnemyState.GoBackRoute || usedEnemy[i].CurrentState == Enemy.EnemyState.Search || usedEnemy[i].CurrentState == Enemy.EnemyState.FakeChase)
                 ) {
-                usedEnemy[i].SuspectByThrow(point);
+                //usedEnemy[i].SuspectByThrow(point);
+                usedEnemy[i].AttentionByThrow(point);
                 if ( dst < leastDst) {
                     leastDst = dst;
                     enemy = usedEnemy[i];
                 }
             }
         }
-        if(enemy != null)enemy.AttentionByThrow(point);
+        //if(enemy != null)enemy.AttentionByThrow(point);
 
     }
 }

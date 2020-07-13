@@ -12,6 +12,9 @@ public class Player : MonoBehaviour
 
     bool inThrow = false;
     int throwNum = 0;
+    public int GetHasThrowNum {
+        get { return (maxThrowNum - throwNum); }
+    }
 
     Vector3 throwDir;
     List<Throwthing> usedThrowthings = new List<Throwthing>();
@@ -102,7 +105,7 @@ public class Player : MonoBehaviour
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.Z)) visible = !visible;
+        //if (Input.GetKeyDown(KeyCode.Z)) visible = !visible;
     }
     void Move() {
         int hMove = 0;

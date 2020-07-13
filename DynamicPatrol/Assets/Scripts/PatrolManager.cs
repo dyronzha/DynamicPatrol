@@ -47,6 +47,7 @@ public class PatrolManager : MonoBehaviour
     }
 
     EnemyManager enemyManager;
+    GameManager gameManager;
 
     [HideInInspector]
     public List<PatrolPath> patrolPathes = new List<PatrolPath>();
@@ -129,7 +130,7 @@ public class PatrolManager : MonoBehaviour
     private void Awake()
     {
         enemyManager = GameObject.Find("EnemyManager").GetComponent<EnemyManager>();
-
+        gameManager = GameObject.Find("GameManager").GetComponent<GameManager>();
     }
 
     // Start is called before the first frame update
@@ -155,32 +156,6 @@ public class PatrolManager : MonoBehaviour
                 }
             }
         }
-
-        SpreadNode merge = new SpreadNode();
-
-        SpreadNode eee = new SpreadNode();
-        eee.pos = new Vector2Int(0, 0);
-        eee.neighbor.Add(spreadGrid[10, 10]);
-        eee.mergeNode = merge;
-
-        SpreadNode fff = eee;
-        fff.pos += new Vector2Int(100, 100);
-        fff.neighbor.Add(spreadGrid[20, 20]);
-
-        SpreadNode ggg = new SpreadNode();
-        ggg.mergeNode = new SpreadNode();
-        SpreadNode hhh = new SpreadNode();
-        hhh.mergeNode = eee.mergeNode;
-        SpreadNode iii = new SpreadNode();
-        iii.mergeNode = fff.mergeNode;
-        SpreadNode jjj = new SpreadNode();
-
-
-        Debug.Log("fff  " + eee.mergeNode.Equals(fff.mergeNode));
-        Debug.Log("ggg  " + eee.mergeNode.Equals(ggg.mergeNode));
-        Debug.Log("hhh  " + eee.mergeNode.Equals(hhh.mergeNode));
-        Debug.Log("iii  " + eee.mergeNode.Equals(iii.mergeNode));
-        Debug.Log("jjj  " + eee.mergeNode.Equals(jjj.mergeNode));
 
         for (int i = areaNames.Count - 1; i >= 0; i--)
         {
@@ -210,7 +185,8 @@ public class PatrolManager : MonoBehaviour
             }
         }
 
-        if (!InTest) {
+        if (!InTest || (InTest && UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex == 0)) //
+        {
             while (!skip) {
                 CouculateGrid();
             }
@@ -228,7 +204,8 @@ public class PatrolManager : MonoBehaviour
     {
         //return;
 
-        if (InTest) {
+        if (InTest && UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex != 0)  //
+        {
             if (Input.GetKeyDown(KeyCode.Space))
             {
 
@@ -1306,6 +1283,21 @@ public class PatrolManager : MonoBehaviour
                 break;
             }
         }
+        //如果沒有交錯點
+        if (ConfirmGraph.Count == 0) {
+            sourceNode = choosenNode[Random.Range(0, choosenNode.Count)];
+            fromNode = new PatrolGraphNode(sourceNode.pos.x, sourceNode.pos.y);
+            fromNode.crossNode = true;
+            fromNode.pos = pathFindGrid.GetNodePos(fromNode.x, fromNode.y);
+            ConfirmGraph.Add(fromNode);
+            confirmGraphNodeDic.Add(sourceNode.pos, fromNode);
+
+            connectNeighbor = sourceNode.neighbor[0];
+            sourceNode.neighbor.RemoveAt(0);
+            connectNeighbor.neighbor.Remove(sourceNode);
+            //將第一個交錯點列入清單
+            waitNodes.Add(sourceNode);
+        }
 
         SpreadNode detectNode = null;
         SpreadNode lastTurnNode = null;
@@ -2293,7 +2285,7 @@ public class PatrolManager : MonoBehaviour
         }
 
         //通知gamemanager 有一個地圖已經連接好了
-        GameManager.hasCreatPath++;
+        gameManager.hasCreatPath++;
     }
 
     public void SpawnEnemy() {
@@ -2336,7 +2328,7 @@ public class PatrolManager : MonoBehaviour
 
         bool tooClose = false;
         for (int i = 0; i < newPatrolPoint.Count; i++) {
-            if ((detectPoint - newPatrolPoint[i]).sqrMagnitude < enemyManager.sightRadius * enemyManager.sightRadius) {
+            if ((detectPoint - newPatrolPoint[i]).sqrMagnitude < enemyManager.sightRadius * enemyManager.sightRadius * 0.25f) {
                 tooClose = true;
                 break;
             }
@@ -2532,7 +2524,7 @@ public class PatrolManager : MonoBehaviour
             List<Vector3> branchRoutePos = null;
 
             //接回自己的路線，在最大長度內，有接回自己的權重最大
-            if (selfNearNode != null && selfLeastDist <= dynamicConnectMaxLength)
+            if (selfNearNode != null) // && (selfLeastDist <= dynamicConnectMaxLength )
             {
                 connectID = selfNearNode.pathID;
                 firstConnectNode = selfNearNode;
@@ -2779,6 +2771,7 @@ public class PatrolManager : MonoBehaviour
                     Collider[] hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (branchRoutePos[c - 2] - branchRoutePos[c])), 0), obstacleMask);
                     if (a > 110f && (hits == null || hits.Length == 0)) //!Physics.Linecast(branchRoutePos[c - 2], branchRoutePos[c], obstacleMask
                     {
+                        Debug.Log(branchRoutePos[c-2] + "  " + branchRoutePos[c]);
                         Debug.Log(" 偵測位置在該線段，會造成重複走  所以移除  " + branchRoutePos[c - 1] + "  route " + branchRoute[c - 1].pos);
                         branchRoutePos.RemoveAt(c - 1);
                         branchRoute.RemoveAt(c - 1);
@@ -3050,10 +3043,6 @@ public class PatrolManager : MonoBehaviour
         List<PatrolGraphNode> branchRoute = new List<PatrolGraphNode>();
         List<Vector3> branchRoutePos = new List<Vector3>();
 
-        if (leastDist > 0.36f) {
-            //如果偵測點離第一點購遠才將偵測點加入
-            branchRoutePos.Add(detectPoint);
-        }
 
         //接回自己的路線，在最大長度內，有接回自己的權重最大
         if (nearNode != null)
@@ -3193,20 +3182,24 @@ public class PatrolManager : MonoBehaviour
 
                             }
 
-                            //退回上個點，繼續檢查可能的路線
-                            if (lastID - 1 >= 0)
-                            {
-                                Debug.Log("當下點 繼續檢查可能的路線  ");
-                                branchLength -= currentNode.besideNodes[currentRoute[lastID + 1]];
-                                currentRoute.RemoveAt(lastID + 1);
-                                currentRoutePos.RemoveAt(lastID + 1);
-                            }
-                            else
-                            {
-                                //回到最開始且沒其他分支，結束
-                                Debug.Log("回到最開始且沒其他分支，結束  ");
-                                break;
-                            }
+                            //當下點，繼續檢查可能的路線
+                            Debug.Log("當下點 繼續檢查可能的路線  ");
+                            branchLength -= currentNode.besideNodes[currentRoute[lastID + 1]];
+                            currentRoute.RemoveAt(lastID + 1);
+                            currentRoutePos.RemoveAt(lastID + 1);
+                            //if (lastID >= 0)
+                            //{
+                            //    Debug.Log("當下點 繼續檢查可能的路線  ");
+                            //    branchLength -= currentNode.besideNodes[currentRoute[lastID + 1]];
+                            //    currentRoute.RemoveAt(lastID + 1);
+                            //    currentRoutePos.RemoveAt(lastID + 1);
+                            //}
+                            //else
+                            //{
+                            //    //回到最開始且沒其他分支，結束
+                            //    Debug.Log("回到最開始且沒其他分支，結束  ");
+                            //    break;
+                            //}
                         }
                         else {
                             Debug.Log("下一點為一般點，繼續  ");
@@ -3218,14 +3211,25 @@ public class PatrolManager : MonoBehaviour
                 }
             }
 
+            branchRoutePos.Insert(0,detectPoint);
+            //if (leastDist > 0.36f) {
+            //    //如果偵測點離第一點購遠才將偵測點加入
+            //    branchRoutePos.Add(detectPoint);
+            //}
+
             //處理路線起始點在線段中間會造成來回走的狀況，且只有第一點是另外一點，不在路線graph裡
             if (branchRoutePos.Count >= 3 && branchRoutePos.Count > branchRoute.Count) {
                 Vector3 dir1 = branchRoutePos[1] - branchRoutePos[0];
                 Vector3 dir2 = branchRoutePos[2] - branchRoutePos[1];
 
+                Vector3 center = 0.5f * (branchRoutePos[0] + branchRoutePos[2]);
+                Vector3 halfExtent = new Vector3((center - branchRoutePos[0]).magnitude, 1.0f, leastNarrow);
+                Collider[] hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (branchRoutePos[2] - branchRoutePos[0])), 0), obstacleMask);
                 float a = Vector3.Angle(dir1, dir2);
-                if (a > 110f && !Physics.Linecast(branchRoutePos[2], branchRoutePos[0], obstacleMask)) {
-                    Debug.Log(" 偵測位置在該線段，會造成重複走  所以移除");
+                if (a > 110f && (hits == null || hits.Length == 0))  //!Physics.Linecast(branchRoutePos[2], branchRoutePos[0], obstacleMask
+                {
+                    Debug.Log(branchRoutePos[0] + "  " + branchRoutePos[2]);
+                    Debug.Log(" 偵測位置在該線段，會造成重複走  所以移除  " + branchRoutePos[1] + "  route " + branchRoute[1].pos);
                     branchRoutePos.RemoveAt(1);
                     branchRoute.RemoveAt(0);
                 }

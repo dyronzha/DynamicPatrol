@@ -21,7 +21,7 @@ public class Enemy : MonoBehaviour
     EnemyManager enemyManager;
 
     public enum EnemyState {
-        Patrol, lookAround, Search, Chase, GoBackRoute, Suspect
+        Patrol, lookAround, Search, Chase, GoBackRoute, Suspect, FakeChase
     }
     EnemyState curState = EnemyState.Patrol;
     EnemyState lastState;
@@ -29,6 +29,7 @@ public class Enemy : MonoBehaviour
         get { return curState; }
     }
 
+    float fakeTime = .0f;
     int curLookNum = 0, lookAroundNum = 0;
     Vector3 nextPatrolPos, moveFWD, lastPathPoint, playerLastPos, playerDir;
     PatrolManager patrolManager;
@@ -157,6 +158,17 @@ public class Enemy : MonoBehaviour
 
             case EnemyState.GoBackRoute:
                 GoingBackRoute();
+                break;
+            case EnemyState.FakeChase:
+                FakeChasing();
+
+                if (DetectPlayer()) {
+                    if (fakeTime > 0.5f)
+                    {
+                        fakeTime = .0f;
+                        ChangeState(EnemyState.Chase);
+                    }
+                }
                 break;
         }
         lastState = curState;
@@ -347,6 +359,7 @@ public class Enemy : MonoBehaviour
             patrolRoutePath = path;
             path.StartPatrolAtNewBranchEnd(); //更新path id
             DynamicChangingPathCBK = pathChangingCBK;
+            GameManager.dynamicPatolChange++;
 
             findRoute = true;
 
@@ -401,6 +414,7 @@ public class Enemy : MonoBehaviour
             patrolRoutePath = path;
             patrolEnd = false;
             DynamicChangingPathCBK = pathChangingCBK;
+            GameManager.dynamicPatolChange++;
 
         }
         else
@@ -641,6 +655,45 @@ public class Enemy : MonoBehaviour
         transform.position += moveFWD * chaseSpeed * Time.deltaTime;
         
     }
+
+    public void SuspectByThrow(Vector3 point)
+    {
+        if (curState == EnemyState.Patrol || curState == EnemyState.lookAround || curState == EnemyState.GoBackRoute)
+        {
+            playerLastPos = point;
+            enemyManager.conversationManager.UseContent(transform, 3);
+            ChangeState(EnemyState.Suspect);
+        }
+    }
+    public void AttentionByThrow(Vector3 point)
+    {
+        point = Vector3.Lerp(transform.position, point, 0.8f);
+        playerLastPos = point;
+        if (curState != EnemyState.FakeChase) {
+            enemyManager.conversationManager.UseContent(transform, 4);
+            ChangeState(EnemyState.FakeChase);
+        }
+
+        //if(curState != EnemyState.Search)enemyManager.conversationManager.UseContent(transform, 4);
+        //ChangeState(EnemyState.Search);
+    }
+    void FakeChasing() {
+        moveFWD = (playerLastPos - transform.position);
+        if (moveFWD.sqrMagnitude > 2.0f) {
+            fakeTime = .0f;
+            transform.rotation = Quaternion.LookRotation(moveFWD.normalized);
+            transform.position += moveFWD.normalized * chaseSpeed * Time.deltaTime;
+        }
+        else {
+            fakeTime += Time.deltaTime;
+            if (fakeTime > 0.5f) {
+                fakeTime = .0f;
+                ChangeState(EnemyState.Search);
+            }
+            
+        }
+    }
+    
 
     void DetectCatchPlayer() {
         if (!patrolManager.InTest && (enemyManager.player.position - transform.position).sqrMagnitude <= 1.0f)
@@ -940,6 +993,7 @@ public class Enemy : MonoBehaviour
             Debug.Log("connect pos  " + targetPos);
             Debug.Log(transform.name + "   " + patrolRoutePath.pathPoints.IndexOf(targetPos) + " ： connect pos  " + targetPos);
             connectID = patrolRoutePath.pathPoints.IndexOf(targetPos);
+            if (patrolRoutePath.Reverse) connectID = patrolRoutePath.pathPoints.Count - 1 - connectID;
             if (connectID >= patrolRoutePath.pathPoints.Count - 1)
             {
                 Debug.Log("BackRoute ChangingPathConnectID  " + (connectID) + "    " + patrolRoutePath.GetPathPoint(connectID));
@@ -961,19 +1015,7 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    public void SuspectByThrow(Vector3 point) {
-        if (curState == EnemyState.Patrol || curState == EnemyState.lookAround || curState == EnemyState.GoBackRoute) {
-            playerLastPos = point;
-            enemyManager.conversationManager.UseContent(transform, 3);
-            ChangeState(EnemyState.Suspect);
-        }
-    }
-    public void AttentionByThrow(Vector3 point) {
-        point = Vector3.Lerp(transform.position, point, 0.8f);
-        playerLastPos = point;
-        enemyManager.conversationManager.UseContent(transform, 4);
-        ChangeState(EnemyState.Search);
-    }
+
 
     Vector3 DirFromAngle(float angle) {
         //angle += transform.eulerAngles.y;
