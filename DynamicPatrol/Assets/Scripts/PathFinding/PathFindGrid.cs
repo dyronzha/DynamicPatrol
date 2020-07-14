@@ -510,9 +510,9 @@ namespace PathFinder
                 {
                     if (drawType == DrawType.Weight)
                     {
-                        Gizmos.color = Color.Lerp(Color.white, Color.black, Mathf.InverseLerp(penaltyMin, penaltyMax, n.movementPenalty));
-                        Gizmos.color = (n.walkable) ? Gizmos.color : Color.red;
-                        //Gizmos.color = (n.walkable) ? Color.white : Color.red;
+                        //Gizmos.color = Color.Lerp(Color.white, Color.black, Mathf.InverseLerp(penaltyMin, penaltyMax, n.movementPenalty));
+                        //Gizmos.color = (n.walkable) ? Gizmos.color : Color.red;
+                        Gizmos.color = (n.walkable) ? Color.white : Color.red;
                     }
                     else if (drawType == DrawType.BeforeSpread)
                     {
@@ -520,7 +520,7 @@ namespace PathFinder
                         {
                             //Gizmos.color = Color.black;
                             Gizmos.color = Color.red;
-                            Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter));
+                            //Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter));
                             continue;
                         }
                         Gizmos.color = Color.white;
@@ -608,6 +608,8 @@ namespace PathFinder
                     }
 
                     Gizmos.DrawCube(n.worldPosition, Vector3.one * (nodeDiameter));
+                    Gizmos.color = new Color(0, 0, 0);
+                    Gizmos.DrawWireCube(n.worldPosition, Vector3.one * (nodeDiameter));
 
                 }
                

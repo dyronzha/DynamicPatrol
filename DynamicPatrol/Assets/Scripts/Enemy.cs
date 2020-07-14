@@ -44,7 +44,7 @@ public class Enemy : MonoBehaviour
     }
     PathFinder.Path backRoutePath;
 
-    bool lefRot = true, patrolEnd = false;
+    bool lefRot = true, patrolEnd = false, suspectSearch = false;
     float lookAroundTime = .0f;
     float lookClockWay = 1.0f;
     Quaternion preLookAround;
@@ -134,9 +134,12 @@ public class Enemy : MonoBehaviour
                 if (DetectPlayer())
                 {
                     seePlayerTime += Time.deltaTime;
-                    if (seePlayerTime >= reflectTime)
+                    float modify = playerDir.magnitude / sightRadius;
+                    if (seePlayerTime >= reflectTime * 8f * ((modify < 1.0f) ? modify : 1.0f))
                     {
-                        Debug.Log("suspecting ffind   player  " + transform.forward);
+                        Debug.Log("suspecting ffind   player  " + transform.forward );
+                        Debug.Log("player dst   " + playerDir.magnitude);
+                        Debug.Log("modify   " + modify);
                         //Debug.Break();
                         enemyManager.conversationManager.UseContent(transform, 4);
                         ChangeState(EnemyState.Chase);
@@ -150,7 +153,9 @@ public class Enemy : MonoBehaviour
                     loosePlayerTime += Time.deltaTime;
                     if (loosePlayerTime > Random.Range(1.5f, 3.0f)) {
                         loosePlayerTime = .0f;
-                        ChangeState(EnemyState.Patrol);
+                        suspectSearch = true;
+                        ChangeState(EnemyState.Search);
+                        //ChangeState(EnemyState.Patrol);
                     }
                 }
                 Suspecting();
@@ -163,7 +168,7 @@ public class Enemy : MonoBehaviour
                 FakeChasing();
 
                 if (DetectPlayer()) {
-                    if (fakeTime > 0.5f)
+                    if (fakeTime > 0.35f)
                     {
                         fakeTime = .0f;
                         ChangeState(EnemyState.Chase);
@@ -172,11 +177,11 @@ public class Enemy : MonoBehaviour
                 break;
         }
         lastState = curState;
-        DetectCatchPlayer();
+        if(!patrolManager.InTest)DetectCatchPlayer();
     }
     private void LateUpdate()
     {
-        DrawFieldofView();
+        //DrawFieldofView();
     }
 
     public void InitInfo(EnemyManager manager) {
@@ -449,7 +454,7 @@ public class Enemy : MonoBehaviour
     }
 
     bool DetectPlayer() {
-        if(patrolManager.InTest)return false;
+        //if(patrolManager.InTest)return false;
         if (enemyManager.player.Visible) {
             Vector3 playerPos = enemyManager.player.position;
             Vector3 newDir = playerPos - transform.position;
@@ -717,6 +722,7 @@ public class Enemy : MonoBehaviour
                 seePlayerTime = .0f;
                 Debug.Log(transform.name + " searching   find player  " + transform.forward);
                 //Debug.Break();
+                enemyManager.conversationManager.UseContent(transform, 4);
                 ChangeState(EnemyState.Chase);
                 if (!renewPatroling) {
                     if (waitProcess)
@@ -747,10 +753,12 @@ public class Enemy : MonoBehaviour
             if (diff.sqrMagnitude > 1.4f)
             {
                 transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(diff), Time.deltaTime * moveRotateSpeed);
-                transform.position += diff.normalized * chaseSpeed * 0.8f * Time.deltaTime;
+                if(!suspectSearch)transform.position += diff.normalized * chaseSpeed * 0.8f * Time.deltaTime;
+                else transform.position += diff.normalized * moveSpeed * 0.8f * Time.deltaTime;
             }
             else
             {
+                suspectSearch = false;
                 stateStep++;
                 LSideLookDir = Quaternion.Euler(0, -60.0f, 0) * transform.forward; //new Vector3(-transform.forward.z, 0, transform.forward.x);
                 RSideLookDir = Quaternion.Euler(0, 60.0f, 0) * transform.forward; //new Vector3(transform.forward.z, 0, -transform.forward.x);

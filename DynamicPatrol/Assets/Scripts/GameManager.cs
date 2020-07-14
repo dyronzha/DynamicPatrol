@@ -218,7 +218,7 @@ public class GameManager : MonoBehaviour
             }
             
         }
-        //if (Input.GetKeyDown(KeyCode.Q)) NextRound();
+        if (Input.GetKeyDown(KeyCode.I)) NextRound();
 
        
     }
@@ -232,6 +232,7 @@ public class GameManager : MonoBehaviour
             {
                 hasGoal = true;
                 exitObject[mapCount].SetActive(false);
+                player.ResetThrowthing();
             }
         }
         else
@@ -273,7 +274,7 @@ public class GameManager : MonoBehaviour
                     playInfomation.SetDynamicPatrolNum(dynamicPatolChange);
 
                     string potion = JsonUtility.ToJson(playInfomation, true);
-                    System.IO.File.WriteAllText(Application.dataPath + "/StreamingAssets" + "/PlayInfomation" + dataNum.ToString() + ".json", potion);
+                    System.IO.File.WriteAllText(Application.dataPath + "/StreamingAssets" + "/PlayInfomation_1-" + dataNum.ToString() + ".json", potion);
                 }
             }
         }
@@ -282,8 +283,6 @@ public class GameManager : MonoBehaviour
     void NextRound() {
         if (mapCount < gameMaps.Length - 1)
         {
-            playerDeathCount = 0;
-            player.ResetThrowthing();
             pause = true;
             hasGoal = false;
             canvasInfo.text = "Next Round";
@@ -293,10 +292,15 @@ public class GameManager : MonoBehaviour
             canvasAnimator.Play("BlackFadeOut");
             playInfomation.SetTime(mapPatrolManager[mapCount].dynamicPatrolSystem, mapCount, roundTime);
             roundTime = .0f;
+            playerDeathCount = 0;
+            playInfomation.GetThrowNum(mapPatrolManager[mapCount].dynamicPatrolSystem, mapCount, player.GetHasThrowNum);
+            player.ResetThrowthing();
         }
         else {
+            //遊戲結束
             pause = true;
-            canvasInfo.text = "Game Over";
+            hasGoal = false;
+            canvasInfo.text = "Congratulations";
             blackShowCBK = Blank;
             canvasInfo.enabled = true;
             canvasInfoBG.enabled = true;
@@ -304,9 +308,13 @@ public class GameManager : MonoBehaviour
             canvasAnimator.Play("BlackFadeOut");
             playInfomation.SetTime(mapPatrolManager[mapCount].dynamicPatrolSystem, mapCount, roundTime);
             roundTime = .0f;
+            playerDeathCount = 0;
+            playInfomation.GetThrowNum(mapPatrolManager[mapCount].dynamicPatrolSystem, mapCount, player.GetHasThrowNum);
+            player.ResetThrowthing();
+            playInfomation.SetDynamicPatrolNum(dynamicPatolChange);
 
             string potion = JsonUtility.ToJson(playInfomation, true);
-            System.IO.File.WriteAllText(Application.dataPath + "/StreamingAssets" + "/PlayInfomation" + dataNum.ToString() + ".json", potion);
+            System.IO.File.WriteAllText(Application.dataPath + "/StreamingAssets" + "/PlayInfomation_1-" + dataNum.ToString() + ".json", potion);
         }
     }
 
@@ -349,7 +357,7 @@ public class GameManager : MonoBehaviour
                 playInfomation.SetDynamicPatrolNum(dynamicPatolChange);
 
                 string potion = JsonUtility.ToJson(playInfomation, true);
-                System.IO.File.WriteAllText(Application.dataPath + "/StreamingAssets" + "/PlayInfomation" + dataNum.ToString() + ".json", potion);
+                System.IO.File.WriteAllText(Application.dataPath + "/StreamingAssets" + "/PlayInfomation_1-" + dataNum.ToString() + ".json", potion);
             }
 
         }

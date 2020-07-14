@@ -70,7 +70,7 @@ public class Throwthing : MonoBehaviour
                 enemyManager.ThrowAttention(transform.position, senseRange);
             }
             else {
-                if (speed < 10f)
+                if (speed < 3f)
                 {
                     //speed = maxSpeed;
                     lineRender.enabled = true;

@@ -159,7 +159,7 @@ public class Player : MonoBehaviour
         usedThrowthings.Remove(t);
     }
     public void ResetThrowthing() {
-        throwNum = 5;
+        throwNum = maxThrowNum;
         throwArrowSprite.enabled = false;
         throwNumTxt.text = "x" + throwNum.ToString();
         for (int i = usedThrowthings.Count-1; i >= 0; i--) {
