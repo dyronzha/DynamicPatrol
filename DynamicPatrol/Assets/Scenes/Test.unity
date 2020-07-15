@@ -1833,7 +1833,7 @@ MonoBehaviour:
   chaseSpeed: 8
   moveRotateSpeed: 5
   lookRotateSpeed: 90
-  sightRadius: 8
+  sightRadius: 10
   sightAngle: 60
   senseRadius: 1.5
   sightResolution: 0.5
@@ -9478,7 +9478,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82a95cadbc11b7f4ba81168b20347b08, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dataNum: 0
+  dataNum: -1
   MainCamera: {fileID: 1479166357}
   enemyManager: {fileID: 257120081}
   player: {fileID: 2033391992}

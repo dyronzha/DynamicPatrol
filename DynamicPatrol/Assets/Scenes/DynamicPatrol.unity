@@ -13175,7 +13175,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82a95cadbc11b7f4ba81168b20347b08, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dataNum: 3
+  dataNum: 14
   MainCamera: {fileID: 1451996409}
   enemyManager: {fileID: 994122380}
   player: {fileID: 930840398}

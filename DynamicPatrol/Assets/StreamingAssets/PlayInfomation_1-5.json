@@ -1,0 +1,35 @@
+{
+    "ps":"頂言測試",
+    "dynamicPatrolChnge": 16,
+    "dynamicFirst": false,
+    "NormalTime": [
+        53.86016082763672,
+        52.40932846069336,
+        167.67971801757813
+    ],
+    "DynamicTime": [
+        166.3680419921875,
+        45.2453727722168,
+        96.96334838867188
+    ],
+    "NormalDeadNum": [
+        1,
+        0,
+        12
+    ],
+    "DynamicDeadNum": [
+        9,
+        0,
+        1
+    ],
+    "NormalThrowNum": [
+        2,
+        1,
+        1
+    ],
+    "DynamicThrowNum": [
+        5,
+        2,
+        2
+    ]
+}

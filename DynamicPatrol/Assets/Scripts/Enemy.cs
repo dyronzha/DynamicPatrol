@@ -163,16 +163,32 @@ public class Enemy : MonoBehaviour
 
             case EnemyState.GoBackRoute:
                 GoingBackRoute();
+                if (DetectPlayer())
+                {
+                    seePlayerTime += Time.deltaTime;
+                    if (seePlayerTime >= reflectTime)
+                    {
+                        enemyManager.conversationManager.UseContent(transform, 3);
+                        ChangeState(EnemyState.Suspect);
+                        seePlayerTime = .0f;
+                    }
+                }
+                else
+                {
+                    seePlayerTime -= Time.deltaTime;
+                    if (seePlayerTime <= .0f) seePlayerTime = .0f;
+                }
                 break;
             case EnemyState.FakeChase:
                 FakeChasing();
 
                 if (DetectPlayer()) {
-                    if (fakeTime > 0.35f)
-                    {
-                        fakeTime = .0f;
-                        ChangeState(EnemyState.Chase);
-                    }
+                    ChangeState(EnemyState.Chase);
+                    //if (fakeTime > 0.35f)
+                    //{
+                    //    fakeTime = .0f;
+                    //    ChangeState(EnemyState.Chase);
+                    //}
                 }
                 break;
         }
@@ -249,13 +265,17 @@ public class Enemy : MonoBehaviour
         else {
             enemyManager.conversationManager.UseContent(transform, 1, 2.0f);
             patrolManager.RequestNewPatrol(this, new Vector3(0, -500, 0));
-        } 
-        if (curState == EnemyState.Patrol || curState == EnemyState.lookAround || curState == EnemyState.GoBackRoute)
+        }
+        if (curState == EnemyState.Patrol || curState == EnemyState.lookAround || curState == EnemyState.GoBackRoute || curState == EnemyState.FakeChase)
         {
             ChangeState(EnemyState.Search);
             LSideLookDir = Quaternion.Euler(0, -60.0f, 0) * transform.forward; //new Vector3(-transform.forward.z, 0, transform.forward.x);
             RSideLookDir = Quaternion.Euler(0, 60.0f, 0) * transform.forward; //new Vector3(transform.forward.z, 0, -transform.forward.x);
             lookClockWay = Mathf.Sign(Vector3.SignedAngle(transform.forward, LSideLookDir, Vector3.up));
+            stateStep = 2;
+            curLookNum = 1;
+        }
+        else if (curState == EnemyState.Search) {
             stateStep = 2;
             curLookNum = 1;
         }
@@ -690,12 +710,14 @@ public class Enemy : MonoBehaviour
             transform.position += moveFWD.normalized * chaseSpeed * Time.deltaTime;
         }
         else {
+            //ChangeState(EnemyState.Search);
             fakeTime += Time.deltaTime;
-            if (fakeTime > 0.5f) {
+            if (fakeTime > 0.5f)
+            {
                 fakeTime = .0f;
                 ChangeState(EnemyState.Search);
             }
-            
+
         }
     }
     
@@ -1023,7 +1045,12 @@ public class Enemy : MonoBehaviour
         }
     }
 
-
+    public void ErrorCatch() {
+        patrolPath = patrolRoutePath;
+        patrolManager.RequestBackPatrol(curRequest, transform.position, this);
+        ChangeState(EnemyState.Search);
+        stateStep = 2;
+    }
 
     Vector3 DirFromAngle(float angle) {
         //angle += transform.eulerAngles.y;

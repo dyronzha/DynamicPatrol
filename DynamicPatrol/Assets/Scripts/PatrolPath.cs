@@ -217,7 +217,11 @@ public class PatrolPath
         //for (int i = 0; i < curPatrolPath.lookPoints.Length; i++) {
         //    Debug.Log(curPatrolPath.lookPoints[i]);
         //}
-        if (curPatrolPath.turnBoundaries[curPatrolPointID] == null) Debug.Log(patrolEnemy.transform.name + "  is retard ");
+        if (curPatrolPath == null || curPatrolPath.turnBoundaries == null || curPatrolPath.turnBoundaries[curPatrolPointID] == null) {
+            Debug.Log(patrolEnemy.transform.name + "  is retard ");
+            patrolEnemy.ErrorCatch();
+            return false;
+        } 
         if (curPatrolPath.turnBoundaries[curPatrolPointID].HasCrossedLine(pos2D))
         {
             if (curPatrolPointID == curPatrolPath.finishLineIndex)
