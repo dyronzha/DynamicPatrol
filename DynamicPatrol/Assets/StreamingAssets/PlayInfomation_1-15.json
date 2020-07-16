@@ -1,0 +1,35 @@
+{
+    "ps":"沒有玩完，不列入",
+    "dynamicPatrolChnge": 20,
+    "dynamicFirst": false,
+    "NormalTime": [
+        55.66221237182617,
+        324.88946533203127,
+        43.04426956176758
+    ],
+    "DynamicTime": [
+        60.831687927246097,
+        406.5377502441406,
+        49.60247802734375
+    ],
+    "NormalDeadNum": [
+        1,
+        11,
+        0
+    ],
+    "DynamicDeadNum": [
+        1,
+        8,
+        0
+    ],
+    "NormalThrowNum": [
+        0,
+        1,
+        1
+    ],
+    "DynamicThrowNum": [
+        0,
+        1,
+        1
+    ]
+}

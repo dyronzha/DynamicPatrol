@@ -1,0 +1,34 @@
+{
+    "dynamicPatrolChnge": 2,
+    "dynamicFirst": false,
+    "NormalTime": [
+        222.8061981201172,
+        129.0666961669922,
+        189.67706298828126
+    ],
+    "DynamicTime": [
+        85.55026245117188,
+        425.0274658203125,
+        58.39360046386719
+    ],
+    "NormalDeadNum": [
+        3,
+        1,
+        3
+    ],
+    "DynamicDeadNum": [
+        0,
+        6,
+        1
+    ],
+    "NormalThrowNum": [
+        0,
+        0,
+        0
+    ],
+    "DynamicThrowNum": [
+        0,
+        6,
+        0
+    ]
+}
