@@ -62,6 +62,43 @@ public class PatrolPath
         }
     }
 
+    //固定路線
+    public PatrolPath(bool cycle, List<Vector3> patrolPoint, List<PatrolManager.PatrolGraphNode> patrolGraphNode, float turnDst, int[] looks)
+    {
+        reverse = false;
+        curPatrolPointID = 1;
+        cycleType = cycle;
+        pathPoints = patrolPoint;
+        pathPatrolGraphNode = patrolGraphNode;
+        bool lastLook = false;
+        Vector3[] points = new Vector3[patrolPoint.Count];
+        points[0] = patrolPoint[0];
+        //points[patrolPoint.Count - 1] = patrolPoint[patrolPoint.Count - 1];
+        for (int i = 1; i < patrolPoint.Count; i++)
+        {
+            float angle = .0f;
+            if (i < patrolPoint.Count - 1) angle = Vector3.Angle((patrolPoint[i] - patrolPoint[i - 1]), (patrolPoint[i + 1] - patrolPoint[i]));
+            else angle = cycle ? Vector3.Angle((patrolPoint[i] - patrolPoint[i - 1]), (patrolPoint[1] - patrolPoint[i])) : 0.0f;
+            points[i] = patrolPoint[i];
+        }
+        for (int i = 0; i < looks.Length; i++) {
+            lookAroundPoints.Add(patrolPoint[i], looks[i]);
+        }
+
+        if (cycle)
+        {
+            patrolPath = new Path(points, turnDst);
+        }
+        else
+        {
+            patrolPath = new Path(points, turnDst);
+            System.Array.Reverse(points);
+            reversePath = new Path(points, turnDst);
+        }
+        curPatrolPath = patrolPath;
+    }
+
+
     //第一次建立路線
     public PatrolPath(bool cycle, List<Vector3> patrolPoint, List<PatrolManager.PatrolGraphNode> patrolGraphNode, float turnDst) {
         reverse = false;

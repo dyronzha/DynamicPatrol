@@ -3128,6 +3128,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   InTest: 0
+  staticRoute: 0
+  staticRouteID: 0
   maxChoosenWeight: 0
   runConnectEnd: 0
   startPos: {x: 0, y: 0, z: 0}
@@ -4148,7 +4150,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 144213781}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 7, y: 9.9140625, z: -16.5}
+  m_LocalPosition: {x: -8.4, y: 9.9140625, z: -4.9}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -5559,13 +5561,15 @@ MonoBehaviour:
   maxPathNum: 5
   patrolCycleFailNum: 0
   patrolRepeatNum: 0
-  turnDist: 1
+  turnDist: 0.15
   patrolMinDynamicLength: 2.5
   dynamicConnectMaxLength: 5
   obstacleMask:
     serializedVersion: 2
     m_Bits: 256
   InTest: 0
+  staticRoute: 1
+  staticRouteID: 1
   maxChoosenWeight: 0
   runConnectEnd: 0
   startPos: {x: 0, y: 0, z: 0}
@@ -5581,7 +5585,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3c3807633b4dc3479336e88fb397443, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  displayGridGizmos: 1
+  displayGridGizmos: 0
   unwalkableMask:
     serializedVersion: 2
     m_Bits: 256
@@ -8378,13 +8382,15 @@ MonoBehaviour:
   maxPathNum: 5
   patrolCycleFailNum: 0
   patrolRepeatNum: 0
-  turnDist: 1
+  turnDist: 0.15
   patrolMinDynamicLength: 2.5
   dynamicConnectMaxLength: 5
   obstacleMask:
     serializedVersion: 2
     m_Bits: 256
   InTest: 0
+  staticRoute: 1
+  staticRouteID: 1
   maxChoosenWeight: 0
   runConnectEnd: 0
   startPos: {x: 0, y: 0, z: 0}
@@ -8400,7 +8406,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3c3807633b4dc3479336e88fb397443, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  displayGridGizmos: 1
+  displayGridGizmos: 0
   unwalkableMask:
     serializedVersion: 2
     m_Bits: 256
@@ -9061,13 +9067,15 @@ MonoBehaviour:
   maxPathNum: 4
   patrolCycleFailNum: 0
   patrolRepeatNum: 0
-  turnDist: 1
+  turnDist: 0.15
   patrolMinDynamicLength: 2.5
   dynamicConnectMaxLength: 5
   obstacleMask:
     serializedVersion: 2
     m_Bits: 256
   InTest: 0
+  staticRoute: 1
+  staticRouteID: 0
   maxChoosenWeight: 0
   runConnectEnd: 0
   startPos: {x: 0, y: 0, z: 0}
@@ -9083,7 +9091,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3c3807633b4dc3479336e88fb397443, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  displayGridGizmos: 1
+  displayGridGizmos: 0
   unwalkableMask:
     serializedVersion: 2
     m_Bits: 256
@@ -13175,7 +13183,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82a95cadbc11b7f4ba81168b20347b08, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dataNum: 25
+  dataNum: -1
   MainCamera: {fileID: 1451996409}
   enemyManager: {fileID: 994122380}
   player: {fileID: 930840398}
@@ -13319,13 +13327,15 @@ MonoBehaviour:
   maxPathNum: 4
   patrolCycleFailNum: 0
   patrolRepeatNum: 0
-  turnDist: 1
+  turnDist: 0.15
   patrolMinDynamicLength: 2.5
   dynamicConnectMaxLength: 5
   obstacleMask:
     serializedVersion: 2
     m_Bits: 256
   InTest: 0
+  staticRoute: 1
+  staticRouteID: 0
   maxChoosenWeight: 0
   runConnectEnd: 0
   startPos: {x: 0, y: 0, z: 0}
@@ -13341,7 +13351,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3c3807633b4dc3479336e88fb397443, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  displayGridGizmos: 1
+  displayGridGizmos: 0
   unwalkableMask:
     serializedVersion: 2
     m_Bits: 256
@@ -14097,6 +14107,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   InTest: 0
+  staticRoute: 0
+  staticRouteID: 0
   maxChoosenWeight: 0
   runConnectEnd: 0
   startPos: {x: 0, y: 0, z: 0}
@@ -19353,6 +19365,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   InTest: 0
+  staticRoute: 1
+  staticRouteID: 0
   maxChoosenWeight: 0
   runConnectEnd: 0
   startPos: {x: 0, y: 0, z: 0}
@@ -19692,7 +19706,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 933345962}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -3.8, y: 2.7539062, z: 7.8}
+  m_LocalPosition: {x: -22, y: 2.7539062, z: -3.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -19734,7 +19748,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 939023406}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2.3, y: 2.7539062, z: 4.3}
+  m_LocalPosition: {x: 555.5, y: 2.7539062, z: 6.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -20844,12 +20858,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 5
-  chaseSpeed: 8
-  moveRotateSpeed: 5
+  chaseSpeed: 7.5
+  moveRotateSpeed: 8
   lookRotateSpeed: 90
-  sightRadius: 10
+  sightRadius: 11
   sightAngle: 80
-  senseRadius: 1.5
+  senseRadius: 2
   sightResolution: 0.5
   edegeResolveIteration: 5
   edgeDstThreshold: 0.5
@@ -26625,6 +26639,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   InTest: 0
+  staticRoute: 1
+  staticRouteID: 0
   maxChoosenWeight: 0
   runConnectEnd: 0
   startPos: {x: 0, y: 0, z: 0}
@@ -30283,13 +30299,15 @@ MonoBehaviour:
   maxPathNum: 8
   patrolCycleFailNum: 0
   patrolRepeatNum: 0
-  turnDist: 1
+  turnDist: 0.15
   patrolMinDynamicLength: 2.5
   dynamicConnectMaxLength: 5
   obstacleMask:
     serializedVersion: 2
     m_Bits: 256
   InTest: 0
+  staticRoute: 1
+  staticRouteID: 2
   maxChoosenWeight: 0
   runConnectEnd: 0
   startPos: {x: 0, y: 0, z: 0}
@@ -30305,7 +30323,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3c3807633b4dc3479336e88fb397443, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  displayGridGizmos: 1
+  displayGridGizmos: 0
   unwalkableMask:
     serializedVersion: 2
     m_Bits: 256
@@ -37130,13 +37148,15 @@ MonoBehaviour:
   maxPathNum: 8
   patrolCycleFailNum: 0
   patrolRepeatNum: 0
-  turnDist: 1
+  turnDist: 0.15
   patrolMinDynamicLength: 2.5
   dynamicConnectMaxLength: 5
   obstacleMask:
     serializedVersion: 2
     m_Bits: 256
   InTest: 0
+  staticRoute: 1
+  staticRouteID: 2
   maxChoosenWeight: 0
   runConnectEnd: 0
   startPos: {x: 0, y: 0, z: 0}
@@ -37152,7 +37172,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a3c3807633b4dc3479336e88fb397443, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  displayGridGizmos: 1
+  displayGridGizmos: 0
   unwalkableMask:
     serializedVersion: 2
     m_Bits: 256
@@ -40072,6 +40092,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   InTest: 0
+  staticRoute: 0
+  staticRouteID: 0
   maxChoosenWeight: 0
   runConnectEnd: 0
   startPos: {x: 0, y: 0, z: 0}
@@ -41101,6 +41123,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   InTest: 0
+  staticRoute: 0
+  staticRouteID: 0
   maxChoosenWeight: 0
   runConnectEnd: 0
   startPos: {x: 0, y: 0, z: 0}
@@ -42873,6 +42897,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   InTest: 0
+  staticRoute: 0
+  staticRouteID: 0
   maxChoosenWeight: 0
   runConnectEnd: 0
   startPos: {x: 0, y: 0, z: 0}
@@ -43491,6 +43517,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   InTest: 0
+  staticRoute: 0
+  staticRouteID: 0
   maxChoosenWeight: 0
   runConnectEnd: 0
   startPos: {x: 0, y: 0, z: 0}

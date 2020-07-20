@@ -69,7 +69,7 @@ public class GameManager : MonoBehaviour
         exitObject = new GameObject[gameMaps.Length];
 
         bool r = (Random.Range(0, 10) >= 5) ? true : false;// false; //= (Random.Range(0, 10) >= 5) ? true : false;
-        if (true)
+        if (r)
         {
             for (int i = 0; i < dynamicMaps.childCount; i++)
             {
@@ -83,9 +83,7 @@ public class GameManager : MonoBehaviour
                 mapPatrolManager[allMapNum].InTest = InTest;
                 mapPatrolManager[allMapNum].startPos = startPos[allMapNum];
                 allMapNum++;
-            }
-            for (int i = 0; i < normalMaps.childCount; i++)
-            {
+
                 if (!normalMaps.GetChild(i).gameObject.activeSelf) continue;
                 Debug.Log(GameMap.GetChild(i).name);
                 gameMaps[allMapNum] = normalMaps.GetChild(i);
@@ -97,9 +95,35 @@ public class GameManager : MonoBehaviour
                 mapPatrolManager[allMapNum].startPos = startPos[allMapNum];
                 allMapNum++;
             }
+            //for (int i = 0; i < dynamicMaps.childCount; i++)
+            //{
+            //    if (!dynamicMaps.GetChild(i).gameObject.activeSelf) continue;
+            //    Debug.Log(GameMap.GetChild(i).name);
+            //    gameMaps[allMapNum] = dynamicMaps.GetChild(i);
+            //    startPos[allMapNum] = gameMaps[allMapNum].Find("StartPos").position;
+            //    exitPos[allMapNum] = gameMaps[allMapNum].Find("Exit").position;
+            //    exitObject[allMapNum] = gameMaps[allMapNum].Find("Exit").GetChild(0).gameObject;
+            //    mapPatrolManager[allMapNum] = gameMaps[allMapNum].Find("PathfindGrid").GetComponent<PatrolManager>();
+            //    mapPatrolManager[allMapNum].InTest = InTest;
+            //    mapPatrolManager[allMapNum].startPos = startPos[allMapNum];
+            //    allMapNum++;
+            //}
+            //for (int i = 0; i < normalMaps.childCount; i++)
+            //{
+            //    if (!normalMaps.GetChild(i).gameObject.activeSelf) continue;
+            //    Debug.Log(GameMap.GetChild(i).name);
+            //    gameMaps[allMapNum] = normalMaps.GetChild(i);
+            //    startPos[allMapNum] = gameMaps[allMapNum].Find("StartPos").position;
+            //    exitPos[allMapNum] = gameMaps[allMapNum].Find("Exit").position;
+            //    exitObject[allMapNum] = gameMaps[allMapNum].Find("Exit").GetChild(0).gameObject;
+            //    mapPatrolManager[allMapNum] = gameMaps[allMapNum].Find("PathfindGrid").GetComponent<PatrolManager>();
+            //    mapPatrolManager[allMapNum].InTest = InTest;
+            //    mapPatrolManager[allMapNum].startPos = startPos[allMapNum];
+            //    allMapNum++;
+            //}
         }
         else {
-            for (int i = 0; i < normalMaps.childCount; i++)
+            for (int i = 0; i < dynamicMaps.childCount; i++)
             {
                 if (!normalMaps.GetChild(i).gameObject.activeSelf) continue;
                 Debug.Log(GameMap.GetChild(i).name);
@@ -111,9 +135,6 @@ public class GameManager : MonoBehaviour
                 mapPatrolManager[allMapNum].InTest = InTest;
                 mapPatrolManager[allMapNum].startPos = startPos[allMapNum];
                 allMapNum++;
-            }
-            for (int i = 0; i < dynamicMaps.childCount; i++)
-            {
                 if (!dynamicMaps.GetChild(i).gameObject.activeSelf) continue;
                 Debug.Log(GameMap.GetChild(i).name);
                 gameMaps[allMapNum] = dynamicMaps.GetChild(i);
@@ -125,6 +146,32 @@ public class GameManager : MonoBehaviour
                 mapPatrolManager[allMapNum].startPos = startPos[allMapNum];
                 allMapNum++;
             }
+            //for (int i = 0; i < normalMaps.childCount; i++)
+            //{
+            //    if (!normalMaps.GetChild(i).gameObject.activeSelf) continue;
+            //    Debug.Log(GameMap.GetChild(i).name);
+            //    gameMaps[allMapNum] = normalMaps.GetChild(i);
+            //    startPos[allMapNum] = gameMaps[allMapNum].Find("StartPos").position;
+            //    exitPos[allMapNum] = gameMaps[allMapNum].Find("Exit").position;
+            //    exitObject[allMapNum] = gameMaps[allMapNum].Find("Exit").GetChild(0).gameObject;
+            //    mapPatrolManager[allMapNum] = gameMaps[allMapNum].Find("PathfindGrid").GetComponent<PatrolManager>();
+            //    mapPatrolManager[allMapNum].InTest = InTest;
+            //    mapPatrolManager[allMapNum].startPos = startPos[allMapNum];
+            //    allMapNum++;
+            //}
+            //for (int i = 0; i < dynamicMaps.childCount; i++)
+            //{
+            //    if (!dynamicMaps.GetChild(i).gameObject.activeSelf) continue;
+            //    Debug.Log(GameMap.GetChild(i).name);
+            //    gameMaps[allMapNum] = dynamicMaps.GetChild(i);
+            //    startPos[allMapNum] = gameMaps[allMapNum].Find("StartPos").position;
+            //    exitPos[allMapNum] = gameMaps[allMapNum].Find("Exit").position;
+            //    exitObject[allMapNum] = gameMaps[allMapNum].Find("Exit").GetChild(0).gameObject;
+            //    mapPatrolManager[allMapNum] = gameMaps[allMapNum].Find("PathfindGrid").GetComponent<PatrolManager>();
+            //    mapPatrolManager[allMapNum].InTest = InTest;
+            //    mapPatrolManager[allMapNum].startPos = startPos[allMapNum];
+            //    allMapNum++;
+            //}
         }
         blackEndCBK = Blank; //ShowInfo;
         blackShowCBK = Blank;
@@ -274,7 +321,7 @@ public class GameManager : MonoBehaviour
                     playInfomation.SetDynamicPatrolNum(dynamicPatolChange);
 
                     string potion = JsonUtility.ToJson(playInfomation, true);
-                    System.IO.File.WriteAllText(Application.dataPath + "/StreamingAssets" + "/PlayInfomation_1-" + dataNum.ToString() + ".json", potion);
+                    System.IO.File.WriteAllText(Application.dataPath + "/StreamingAssets" + "/PlayInfomation_2-" + dataNum.ToString() + ".json", potion);
                 }
             }
         }
@@ -314,7 +361,7 @@ public class GameManager : MonoBehaviour
             playInfomation.SetDynamicPatrolNum(dynamicPatolChange);
 
             string potion = JsonUtility.ToJson(playInfomation, true);
-            System.IO.File.WriteAllText(Application.dataPath + "/StreamingAssets" + "/PlayInfomation_1-" + dataNum.ToString() + ".json", potion);
+            System.IO.File.WriteAllText(Application.dataPath + "/StreamingAssets" + "/PlayInfomation_2-" + dataNum.ToString() + ".json", potion);
         }
     }
 
@@ -357,7 +404,7 @@ public class GameManager : MonoBehaviour
                 playInfomation.SetDynamicPatrolNum(dynamicPatolChange);
 
                 string potion = JsonUtility.ToJson(playInfomation, true);
-                System.IO.File.WriteAllText(Application.dataPath + "/StreamingAssets" + "/PlayInfomation_1-" + dataNum.ToString() + ".json", potion);
+                System.IO.File.WriteAllText(Application.dataPath + "/StreamingAssets" + "/PlayInfomation_2-" + dataNum.ToString() + ".json", potion);
             }
 
         }

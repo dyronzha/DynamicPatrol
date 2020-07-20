@@ -70,59 +70,59 @@ public class Player : MonoBehaviour
         if (GameManager.pause) return;
         Move();
 
-        if (!inThrow)
-        {
-            if (Input.GetMouseButtonDown(0)) {
-                if (throwNum > 0 && freeThrowthings.Count > 0) {
-                    inThrow = true;
-                    Vector3 mPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
-                    throwDir = new Vector3(mPos.x, 0, mPos.z) - transform.position;
-                    Debug.Log("throw  " + throwDir + "    mouse " + Input.mousePosition);
-                    if (throwDir.sqrMagnitude <= 0.25f) throwDir = new Vector3(0, 0, 1);
-                    throwArrow.rotation = Quaternion.LookRotation(throwDir);
-                    throwArrowSprite.enabled = true;
-                }
-            }
-        }
-        else {
-            Vector3 mPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
-            Vector3 newDir = new Vector3(mPos.x, 0, mPos.z) - transform.position;
-            if (newDir.sqrMagnitude > 0.25f) throwDir = newDir.normalized;
-            throwArrow.rotation = Quaternion.LookRotation(throwDir);
+        //if (!inThrow)
+        //{
+        //    if (Input.GetMouseButtonDown(0)) {
+        //        if (throwNum > 0 && freeThrowthings.Count > 0) {
+        //            inThrow = true;
+        //            Vector3 mPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
+        //            throwDir = new Vector3(mPos.x, 0, mPos.z) - transform.position;
+        //            Debug.Log("throw  " + throwDir + "    mouse " + Input.mousePosition);
+        //            if (throwDir.sqrMagnitude <= 0.25f) throwDir = new Vector3(0, 0, 1);
+        //            throwArrow.rotation = Quaternion.LookRotation(throwDir);
+        //            throwArrowSprite.enabled = true;
+        //        }
+        //    }
+        //}
+        //else {
+        //    Vector3 mPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
+        //    Vector3 newDir = new Vector3(mPos.x, 0, mPos.z) - transform.position;
+        //    if (newDir.sqrMagnitude > 0.25f) throwDir = newDir.normalized;
+        //    throwArrow.rotation = Quaternion.LookRotation(throwDir);
 
-            if (Input.GetMouseButtonDown(1)) {
-                inThrow = false;
-                throwArrowSprite.enabled = false;
-            }
-            if (Input.GetMouseButtonUp(0)) {
-                inThrow = false;
-                throwArrowSprite.enabled = false;
-                throwNum--;
-                freeThrowthings[0].SetThrow(transform.position, throwDir);
-                usedThrowthings.Add(freeThrowthings[0]);
-                freeThrowthings.RemoveAt(0);
-                throwNumTxt.text = "x" + throwNum.ToString();
-            }
-        }
+        //    if (Input.GetMouseButtonDown(1)) {
+        //        inThrow = false;
+        //        throwArrowSprite.enabled = false;
+        //    }
+        //    if (Input.GetMouseButtonUp(0)) {
+        //        inThrow = false;
+        //        throwArrowSprite.enabled = false;
+        //        throwNum--;
+        //        freeThrowthings[0].SetThrow(transform.position, throwDir);
+        //        usedThrowthings.Add(freeThrowthings[0]);
+        //        freeThrowthings.RemoveAt(0);
+        //        throwNumTxt.text = "x" + throwNum.ToString();
+        //    }
+        //}
 
-        //if (Input.GetKeyDown(KeyCode.Z)) visible = !visible;
+        if (Input.GetKeyDown(KeyCode.I)) visible = !visible;
     }
     void Move() {
         int hMove = 0;
         int vMove = 0;
-        if (Input.GetKey(KeyCode.A))
+        if (Input.GetKey(KeyCode.LeftArrow))
         {
             hMove = -1;
         }
-        if (Input.GetKey(KeyCode.D)) {
+        if (Input.GetKey(KeyCode.RightArrow)) {
             if (hMove < 0) hMove = 0;
             else hMove = 1;
         }
-        if (Input.GetKey(KeyCode.S))
+        if (Input.GetKey(KeyCode.DownArrow))
         {
             vMove = -1;
         }
-        if (Input.GetKey(KeyCode.W)) {
+        if (Input.GetKey(KeyCode.UpArrow)) {
             if (vMove < 0) vMove = 0;
             else vMove = 1;
         }

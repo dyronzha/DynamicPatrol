@@ -592,15 +592,16 @@ namespace PathFinder
 
                             if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count <= 0)
                             {
-                                Gizmos.color = Color.blue;
+                               Gizmos.color = Color.grey;
                             }
                             else {
                                 Gizmos.color = new Color(0, 1, 1);
                             }
                             if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].crossNode || patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].beenMerged) Gizmos.color = new Color(1, 0, 1);
-                            else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].turnNode) Gizmos.color = Color.yellow;
-                            else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].endNode) Gizmos.color = Color.green;
-                            //else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count < 2) Gizmos.color = Color.green;
+                            else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].turnNode) Gizmos.color = new Color(0.9f, 0.9f, .0f);
+                            else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].endNode) Gizmos.color = Color.blue;
+                            
+                        //else if (patrolManager.choosenNodeDic[new Vector2Int(n.gridX, n.gridY)].neighbor.Count < 2) Gizmos.color = Color.green;
                         }
 
                         //if (patrolManager.confirmGraphNodeDic.ContainsKey(new Vector2Int(n.gridX, n.gridY)))
@@ -617,24 +618,30 @@ namespace PathFinder
                 }
                
             }
-
+            //return;
             if (patrolManager != null) {
-                float height = 3;
+                float height = 5;
+                
+
+                Dictionary<Vector3, Vector3> exist = new Dictionary<Vector3, Vector3>();
+                height += 1.0f;
+
                 for (int i = 0; i < patrolManager.ConfirmGraph.Count; i++)
                 {
                     Gizmos.color = Color.red;
                     PatrolManager.PatrolGraphNode node = patrolManager.ConfirmGraph[i];
+
                     Vector3 from = new Vector3(node.pos.x, height, node.pos.z);
 
                     foreach (KeyValuePair<PatrolManager.PatrolGraphNode, float> item in node.besideNodes)
                     {
+                        //if (exist.ContainsKey(node.pos) && exist[node.pos] == item.Key.pos) continue;
                         Vector3 to = new Vector3(item.Key.pos.x, height, item.Key.pos.z);
                         Gizmos.DrawLine(from, to);
                     }
-                    height += 1.0f;
+                    //height += 1.0f;
                 }
-               
-                height += 1.0f;
+
                 for (int i = 0; i < patrolManager.patrolPathes.Count; i++) {
                     Gizmos.color = Color.cyan;
                     for (int j = 1; j < patrolManager.patrolPathes[i].CurrentPath.lookPoints.Length; j++)
@@ -642,17 +649,20 @@ namespace PathFinder
                         Vector3 from = new Vector3(patrolManager.patrolPathes[i].CurrentPath.lookPoints[j].x, height, patrolManager.patrolPathes[i].CurrentPath.lookPoints[j].z);
                         Vector3 to = new Vector3(patrolManager.patrolPathes[i].CurrentPath.lookPoints[j-1].x, height, patrolManager.patrolPathes[i].CurrentPath.lookPoints[j-1].z);
                         Gizmos.DrawLine(from, to);
-                        if(j == 1 && patrolManager.patrolPathes[i].LookAroundPoints(0) > 0) Gizmos.DrawSphere(to, 0.5f);
+                        if (!exist.ContainsKey(from)) exist.Add(from, to);
+                        if (j == 1 && patrolManager.patrolPathes[i].LookAroundPoints(0) > 0) Gizmos.DrawSphere(to, 0.5f);
                         if (patrolManager.patrolPathes[i].LookAroundPoints(j) > 0)
                         {
                             Gizmos.DrawSphere(from, 0.5f);
                         }
                     }
 
-                    height += 1.0f;
+                    //height += 1.0f;
                 }
+
+             
             }
-           
+
         }
 
         [System.Serializable]

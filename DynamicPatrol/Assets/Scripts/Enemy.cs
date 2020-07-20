@@ -377,6 +377,7 @@ public class Enemy : MonoBehaviour
 
             Debug.Log(transform.name +  "  自行改變 路徑");
             //從新的巡邏點開始走
+            newPatrol = false;
             waitProcess = false;
             dynamicPatrol = true;
             patrolEnd = false;
@@ -474,29 +475,35 @@ public class Enemy : MonoBehaviour
     }
 
     bool DetectPlayer() {
-        //if(patrolManager.InTest)return false;
+        if(patrolManager.InTest)return false;
         if (enemyManager.player.Visible) {
             Vector3 playerPos = enemyManager.player.position;
             Vector3 newDir = playerPos - transform.position;
+            Vector3 dirL = playerPos + 0.5f * new Vector3(-newDir.z, 0, newDir.x).normalized - transform.position;
+            Vector3 dirR = playerPos + 0.5f * new Vector3(newDir.z, 0, -newDir.x).normalized - transform.position;
             if (newDir.sqrMagnitude <= sightRadius * sightRadius) {
 
                 //如果太近可以直接進懷疑
                 if (newDir.sqrMagnitude <= senseRadius * senseRadius)
                 {
-                    if (Physics.Raycast(transform.position, newDir, newDir.magnitude, enemyManager.obstacleMask) == false)
+                    if (Physics.Raycast(transform.position, newDir, newDir.magnitude, enemyManager.obstacleMask) == false &&
+                        Physics.Raycast(transform.position, dirL, dirL.magnitude, enemyManager.obstacleMask) == false &&
+                        Physics.Raycast(transform.position, dirR, dirR.magnitude, enemyManager.obstacleMask) == false)
                     {
                         float angle = Vector3.Angle(transform.forward, newDir);
-                        if (angle <= 90.0f)
+                        if (angle <= 180.0f)
                         {
                             playerLastPos = playerPos;
-                            seePlayerTime = reflectTime + 1.0f;
+                            //seePlayerTime += Time.deltaTime;
                             playerDir = newDir;
                             return true;
                         }
                     }
                 }
                 else {
-                    if (Physics.Raycast(transform.position, newDir, newDir.magnitude, enemyManager.obstacleMask) == false)
+                    if (Physics.Raycast(transform.position, newDir, newDir.magnitude, enemyManager.obstacleMask) == false &&
+                        Physics.Raycast(transform.position, dirL, dirL.magnitude, enemyManager.obstacleMask) == false &&
+                        Physics.Raycast(transform.position, dirR, dirR.magnitude, enemyManager.obstacleMask) == false)
                     {
                         float angle = Vector3.Angle(transform.forward, newDir);
                         if (angle <= sightAngle * 0.5f)
@@ -560,14 +567,11 @@ public class Enemy : MonoBehaviour
                     else
                     {
                         newPatrolPath.SetPathReverse();
-                        //if(newPatrolPath.TBranch)
-                        //    changingPathConnectID = newPatrolPath.pathPoints.Count - 1 - newPatrolPath.pathPoints.IndexOf(lastPathPoint) - newPatrolPath.newBranchGraphNode.Count * 2;
-                        //else
-                        //    changingPathConnectID = newPatrolPath.pathPoints.Count - 1 - newPatrolPath.pathPoints.IndexOf(lastPathPoint);
+
                         changingPathConnectID = newPatrolPath.pathPoints.Count - 1 - newPatrolPath.pathPoints.IndexOf(lastPathPoint);
-                        Debug.Log(newPatrolPath.TBranch + "   new path count" + (newPatrolPath.pathPoints.Count - 1));
-                        Debug.Log("new path id " + newPatrolPath.pathPoints.IndexOf(lastPathPoint));
-                        Debug.Log("new path branch " + newPatrolPath.newBranchGraphNode.Count);
+                        //Debug.Log(newPatrolPath.TBranch + "   new path count" + (newPatrolPath.pathPoints.Count - 1));
+                        //Debug.Log("new path id " + newPatrolPath.pathPoints.IndexOf(lastPathPoint));
+                        //Debug.Log("new path branch " + newPatrolPath.newBranchGraphNode.Count);
                     }
                     newPatrol = false;
                     changingPath = false;
@@ -772,11 +776,12 @@ public class Enemy : MonoBehaviour
             //先走到懷疑點確認，之後再送出改變路徑請求，因為有可能不斷重複找到>追丟>找到>追丟
             Debug.Log("search  " + playerLastPos);
             diff = (playerLastPos - transform.position);
-            if (diff.sqrMagnitude > 1.4f)
+            if (diff.sqrMagnitude > 0.25f)
             {
                 transform.rotation = Quaternion.Lerp(transform.rotation, Quaternion.LookRotation(diff), Time.deltaTime * moveRotateSpeed);
-                if(!suspectSearch)transform.position += diff.normalized * chaseSpeed * 0.8f * Time.deltaTime;
-                else transform.position += diff.normalized * moveSpeed * 0.8f * Time.deltaTime;
+                //if(!suspectSearch)transform.position += diff.normalized * chaseSpeed * 0.8f * Time.deltaTime;
+                //else transform.position += diff.normalized * moveSpeed * 0.8f * Time.deltaTime;
+                transform.position += diff.normalized * chaseSpeed * 0.8f * Time.deltaTime;
             }
             else
             {

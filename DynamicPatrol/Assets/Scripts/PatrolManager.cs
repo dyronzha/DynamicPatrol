@@ -35,6 +35,8 @@ public class PatrolManager : MonoBehaviour
     public bool InTest = false;
     //public Enemy testEnemy;
     //public Player testPlayer;
+    public bool staticRoute = true;
+    public int staticRouteID = 0;
 
     [HideInInspector]
     public int maxChoosenWeight = 0;
@@ -127,6 +129,7 @@ public class PatrolManager : MonoBehaviour
     [HideInInspector]
     public Vector3 startPos;
 
+    System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
     private void Awake()
     {
         enemyManager = GameObject.Find("EnemyManager").GetComponent<EnemyManager>();
@@ -206,9 +209,23 @@ public class PatrolManager : MonoBehaviour
 
         if (InTest && UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex != 0)  //
         {
+            if (Input.GetKeyDown(KeyCode.A)) {
+               
+                sw.Start();
+                while (!skip)
+                {
+                    CouculateGrid();
+                }
+                DeleteBranch();
+                DeleteExtraNode();
+                CouculateGraphCross();
+                CouculateGraphTurn();
+                skipRun = true;
+                StartCoroutine(ConactGraph());
+            }
+
             if (Input.GetKeyDown(KeyCode.Space))
             {
-
                 CouculateGrid();
             }
             if (Input.GetKeyDown(KeyCode.Z))
@@ -898,6 +915,16 @@ public class PatrolManager : MonoBehaviour
             choosenNode.Remove(choosenNodeDic[couculatedNodes[i]]);
             choosenNodeDic.Remove(couculatedNodes[i]);
         }
+
+        for (int i = choosenNode.Count - 1; i >= 0; i--)
+        {
+            if (choosenNode[i].neighbor.Count == 0)
+            {
+                choosenNode[i].neighbor.Clear();
+                choosenNodeDic.Remove(choosenNode[i].pos);
+                choosenNode.RemoveAt(i);
+            }
+        }
     }
 
 
@@ -1017,33 +1044,55 @@ public class PatrolManager : MonoBehaviour
     }
 
     //如果自己的鄰居可以互相連接，或是寬度小於一定的道路，可以刪掉
-    void DeleteExtraNode() {
+    void DeleteExtraNode()
+    {
 
         //第一次遍歷先找出過窄的道路，刪除
-        for (int i = choosenNode.Count - 1; i >= 0; i--) {
+        List<SpreadNode> dispartNodes = new List<SpreadNode>();
+        for (int i = choosenNode.Count - 1; i >= 0; i--)
+        {
             if (leastNarrow > .0f)
             {
                 Vector3 pos = pathFindGrid.GetNodePos(choosenNode[i].pos.x, choosenNode[i].pos.y);
-                Vector3 VStart = pos + new Vector3(0, 0, leastNarrow);
-                Vector3 VEnd = pos + new Vector3(0, 0, -leastNarrow);
-                Vector3 HStart = pos + new Vector3(leastNarrow, 0, 0);
-                Vector3 HEnd = pos + new Vector3(-leastNarrow, 0, 0);
-                if (Physics.Linecast(VStart, VEnd, 1 << LayerMask.NameToLayer("Obstacle")) || Physics.Linecast(HStart, HEnd, obstacleMask) ||
-                        VStart.z > pathFindGrid.MaxBorderPoint.z || VEnd.z < pathFindGrid.MinBorderPoint.z || HStart.x > pathFindGrid.MaxBorderPoint.x || HEnd.x < pathFindGrid.MinBorderPoint.x)
-                {
+                //Vector3 VStart = pos + new Vector3(0, 0, leastNarrow);
+                //Vector3 VEnd = pos + new Vector3(0, 0, -leastNarrow);
+                //Vector3 HStart = pos + new Vector3(leastNarrow, 0, 0);
+                //Vector3 HEnd = pos + new Vector3(-leastNarrow, 0, 0);
+                //if (Physics.Linecast(VStart, VEnd, 1 << LayerMask.NameToLayer("Obstacle")) || Physics.Linecast(HStart, HEnd, obstacleMask) ||
+                //        VStart.z > pathFindGrid.MaxBorderPoint.z || VEnd.z < pathFindGrid.MinBorderPoint.z || HStart.x > pathFindGrid.MaxBorderPoint.x || HEnd.x < pathFindGrid.MinBorderPoint.x)
+                //{
+                //    for (int j = 0; j < choosenNode[i].neighbor.Count; j++)
+                //    {
+                //        choosenNode[i].neighbor[j].neighbor.Remove(choosenNode[i]);
+                //    }
+                //    choosenNode[i].neighbor.Clear();
+                //    choosenNodeDic.Remove(choosenNode[i].pos);
+                //    choosenNode.RemoveAt(i);
+                //}
+
+                Collider[] hits = Physics.OverlapSphere(pos, leastNarrow, obstacleMask);
+                if (hits != null && hits.Length > 0) {
                     for (int j = 0; j < choosenNode[i].neighbor.Count; j++)
                     {
                         choosenNode[i].neighbor[j].neighbor.Remove(choosenNode[i]);
+                        if (!dispartNodes.Contains(choosenNode[i].neighbor[j])) dispartNodes.Add(choosenNode[i].neighbor[j]);
                     }
                     choosenNode[i].neighbor.Clear();
+                    if (dispartNodes.Contains(choosenNode[i])) dispartNodes.Add(choosenNode[i]);
                     choosenNodeDic.Remove(choosenNode[i].pos);
                     choosenNode.RemoveAt(i);
                 }
+
             }
         }
+        //List<SpreadNode> deleteNodes = new List<SpreadNode>();
+        //for (int i = dispartNodes.Count - 1; i >= 0; i--) { 
+        //    if(dispartNodes)
+        //}
 
         //第二次遍歷，如果自己的鄰居可以互相連接，可以刪除
-        for (int i = choosenNode.Count - 1; i >= 0; i--) {
+        for (int i = choosenNode.Count - 1; i >= 0; i--)
+        {
             //鄰居大於2的，計算
             if (choosenNode[i].neighbor.Count >= 2)
             {
@@ -1078,11 +1127,21 @@ public class PatrolManager : MonoBehaviour
                 }
             }
             //鄰居數量0的，把自己刪掉
-            else if (choosenNode[i].neighbor.Count == 0) {
+            else if (choosenNode[i].neighbor.Count == 0)
+            {
                 for (int j = 0; j < choosenNode[i].neighbor.Count; j++)
                 {
                     choosenNode[i].neighbor[j].neighbor.Remove(choosenNode[i]);
                 }
+                choosenNode[i].neighbor.Clear();
+                choosenNodeDic.Remove(choosenNode[i].pos);
+                choosenNode.RemoveAt(i);
+            }
+        }
+
+        for (int i = choosenNode.Count - 1; i >= 0; i--)
+        {
+            if (choosenNode[i].neighbor.Count == 0) {
                 choosenNode[i].neighbor.Clear();
                 choosenNodeDic.Remove(choosenNode[i].pos);
                 choosenNode.RemoveAt(i);
@@ -1160,6 +1219,7 @@ public class PatrolManager : MonoBehaviour
 
                 }
 
+                //判斷已被加進合併點的鄰居，遍歷WAIT裡所有節點的鄰居
                 int breakNum = 0;
                 while (waitMergeNodes.Count > 0) {
                     breakNum++;
@@ -1524,7 +1584,8 @@ public class PatrolManager : MonoBehaviour
                             //將來源點加進上個轉折點的連接點裡
                             nextNode.besideNodes.Add(confirmGraphNodeDic[sourceNode.pos], middleDst);
                             //將上個轉折點加進來原點的連接點裡
-                            confirmGraphNodeDic[sourceNode.pos].besideNodes.Add(nextNode, middleDst);
+                            if (!confirmGraphNodeDic[sourceNode.pos].besideNodes.ContainsKey(nextNode)) confirmGraphNodeDic[sourceNode.pos].besideNodes.Add(nextNode, middleDst);
+                            else confirmGraphNodeDic[sourceNode.pos].besideNodes[nextNode] = middleDst;
                             lastDir = new Vector2Int(connectNeighbor.pos.x - detectNode.pos.x, connectNeighbor.pos.y - detectNode.pos.y);
                             sourceNode = detectNode;
                             lastLength = connectLength;
@@ -1699,9 +1760,22 @@ public class PatrolManager : MonoBehaviour
             }
         }
 
+        GameObject patrolNode = new GameObject();
+        for (int i = 0; i < ConfirmGraph.Count; i++)
+        {
+            Debug.Log("graph point  " + "id  " + i + "：" + ConfirmGraph[i].pos + " detect NUM " + ConfirmGraph[i].detectNum);
+            if (dynamicPatrolSystem) {
+                patrolNode = Instantiate(patrolNode, ConfirmGraph[i].pos, Quaternion.identity);
+                patrolNode.name = "patrol graph node  " + i;
+            } 
+            
+        }
+
         runConnectEnd = true;
-        StartCoroutine(CreatePath());
+        if (!staticRoute) StartCoroutine(CreatePath());
+        else StartCoroutine(CreateStaticPath());
         Debug.Log("跑完連接~~~~~");
+
 
         //for (int i = 0; i < ConfirmGraph.Count; i++) {
         //    int turnNum = 0;
@@ -1735,6 +1809,248 @@ public class PatrolManager : MonoBehaviour
         //    }
         //}
 
+    }
+
+    IEnumerator CreateStaticPath() {
+        int count = 0;
+        List<PatrolGraphNode> patrolGraph = new List<PatrolGraphNode>();  //紀錄存的點
+        List<Vector3> patrolPoint = new List<Vector3>();  //記錄存的點位置，產生path
+        if (staticRouteID == 0) {
+            for (int i = 0; i < 4; i++) {
+                PatrolPath path = null;
+                if (i == 0)
+                {
+                    patrolGraph.Add(ConfirmGraph[3]);
+                    patrolPoint.Add(ConfirmGraph[3].pos);
+                    patrolGraph.Add(ConfirmGraph[2]);
+                    patrolPoint.Add(ConfirmGraph[2].pos);
+                    patrolGraph.Add(ConfirmGraph[0]);
+                    patrolPoint.Add(ConfirmGraph[0].pos);
+                    patrolGraph.Add(ConfirmGraph[1]);
+                    patrolPoint.Add(ConfirmGraph[1].pos);
+                    int[] looks = new int[4] { 2,1,0,1};
+                    path = new PatrolPath(false, patrolPoint, patrolGraph, turnDist, looks);
+                }
+                else if (i == 1)
+                {
+                    patrolGraph.Add(ConfirmGraph[4]);
+                    patrolPoint.Add(ConfirmGraph[4].pos);
+                    patrolGraph.Add(ConfirmGraph[5]);
+                    patrolPoint.Add(ConfirmGraph[5].pos);
+                    patrolGraph.Add(ConfirmGraph[6]);
+                    patrolPoint.Add(ConfirmGraph[6].pos);
+                    int[] looks = new int[3] { 1, 0, 2 };
+                    path = new PatrolPath(false, patrolPoint, patrolGraph, turnDist,looks );
+                }
+                else if (i == 2)
+                {
+                    patrolGraph.Add(ConfirmGraph[14]);
+                    patrolPoint.Add(ConfirmGraph[14].pos);
+                    patrolGraph.Add(ConfirmGraph[15]);
+                    patrolPoint.Add(ConfirmGraph[15].pos);
+                    patrolGraph.Add(ConfirmGraph[18]);
+                    patrolPoint.Add(ConfirmGraph[18].pos);
+                    int[] looks = new int[3] { 2, 1, 1};
+                    path = new PatrolPath(false, patrolPoint, patrolGraph, turnDist, looks);
+                }
+                else {
+                    patrolGraph.Add(ConfirmGraph[19]);
+                    patrolPoint.Add(ConfirmGraph[19].pos);
+                    patrolGraph.Add(ConfirmGraph[21]);
+                    patrolPoint.Add(ConfirmGraph[21].pos);
+                    patrolGraph.Add(ConfirmGraph[22]);
+                    patrolPoint.Add(ConfirmGraph[22].pos);
+                    int[] looks = new int[3] { 2, 0, 2};
+                    path = new PatrolPath(false, patrolPoint, patrolGraph, turnDist, looks);
+                }
+                Debug.Log("完成路線 ");
+                
+                for (int j = 0; j < patrolGraph.Count; j++)
+                {
+                    Debug.Log("路線點 " + patrolGraph[j].pos + "  &  " + patrolPoint[j]);
+                    patrolGraph[j].detectNum = 1;
+                    patrolGraph[j].patrolPath = path;
+                    patrolGraph[j].pathID = j;
+                }
+                patrolPathes.Add(path);
+                firstPatrolPathes.Add(path);
+                patrolGraph = new List<PatrolGraphNode>();
+                patrolPoint = new List<Vector3>();
+            }
+        }
+        else if (staticRouteID == 1)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                PatrolPath path = null;
+                if (i == 0)
+                {
+                    patrolGraph.Add(ConfirmGraph[3]);
+                    patrolPoint.Add(ConfirmGraph[3].pos);
+                    patrolGraph.Add(ConfirmGraph[4]);
+                    patrolPoint.Add(ConfirmGraph[4].pos);
+                    patrolGraph.Add(ConfirmGraph[8]);
+                    patrolPoint.Add(ConfirmGraph[8].pos);
+                    patrolGraph.Add(ConfirmGraph[0]);
+                    patrolPoint.Add(ConfirmGraph[0].pos);
+                    int[] looks = new int[4] { 1, 2, 0, 2 };
+                    path = new PatrolPath(false, patrolPoint, patrolGraph, turnDist, looks);
+                }
+                else if (i == 1)
+                {
+                    patrolGraph.Add(ConfirmGraph[25]);
+                    patrolPoint.Add(ConfirmGraph[25].pos);
+                    patrolGraph.Add(ConfirmGraph[24]);
+                    patrolPoint.Add(ConfirmGraph[24].pos);
+                    patrolGraph.Add(ConfirmGraph[23]);
+                    patrolPoint.Add(ConfirmGraph[23].pos);
+                    patrolGraph.Add(ConfirmGraph[22]);
+                    patrolPoint.Add(ConfirmGraph[22].pos);
+                    int[] looks = new int[4] { 1, 0, 0, 2 };
+                    path = new PatrolPath(false, patrolPoint, patrolGraph, turnDist, looks);
+                }
+                else if (i == 2)
+                {
+                    patrolGraph.Add(ConfirmGraph[21]);
+                    patrolPoint.Add(ConfirmGraph[21].pos);
+                    patrolGraph.Add(ConfirmGraph[10]);
+                    patrolPoint.Add(ConfirmGraph[10].pos);
+                    patrolGraph.Add(ConfirmGraph[18]);
+                    patrolPoint.Add(ConfirmGraph[18].pos);
+                    int[] looks = new int[3] { 1, 1, 1};
+                    path = new PatrolPath(false, patrolPoint, patrolGraph, turnDist, looks);
+                }
+                else
+                {
+                    patrolGraph.Add(ConfirmGraph[17]);
+                    patrolPoint.Add(ConfirmGraph[17].pos);
+                    patrolGraph.Add(ConfirmGraph[7]);
+                    patrolPoint.Add(ConfirmGraph[7].pos);
+                    patrolGraph.Add(ConfirmGraph[13]);
+                    patrolPoint.Add(ConfirmGraph[13].pos);
+                    patrolGraph.Add(ConfirmGraph[14]);
+                    patrolPoint.Add(ConfirmGraph[14].pos);
+                    int[] looks = new int[4] { 1, 0, 0, 2 };
+                    path = new PatrolPath(false, patrolPoint, patrolGraph, turnDist, looks);
+                }
+                Debug.Log("完成路線 ");
+
+                for (int j = 0; j < patrolGraph.Count; j++)
+                {
+                    Debug.Log("路線點 " + patrolGraph[j].pos + "  &  " + patrolPoint[j]);
+                    patrolGraph[j].detectNum = 1;
+                    patrolGraph[j].patrolPath = path;
+                    patrolGraph[j].pathID = j;
+                }
+                patrolPathes.Add(path);
+                firstPatrolPathes.Add(path);
+                patrolGraph = new List<PatrolGraphNode>();
+                patrolPoint = new List<Vector3>();
+            }
+        }
+        else if (staticRouteID == 2)
+        {
+            for (int i = 0; i < 6; i++)
+            {
+                PatrolPath path = null;
+                if (i == 0)
+                {
+                    patrolGraph.Add(ConfirmGraph[4]);
+                    patrolPoint.Add(ConfirmGraph[4].pos);
+                    patrolGraph.Add(ConfirmGraph[16]);
+                    patrolPoint.Add(ConfirmGraph[16].pos);
+                    patrolGraph.Add(ConfirmGraph[26]);
+                    patrolPoint.Add(ConfirmGraph[26].pos);
+
+                    int[] looks = new int[3] { 1, 0, 1 };
+                    path = new PatrolPath(false, patrolPoint, patrolGraph, turnDist, looks);
+                }
+                else if (i == 1)
+                {
+                    patrolGraph.Add(ConfirmGraph[5]);
+                    patrolPoint.Add(ConfirmGraph[5].pos);
+                    patrolGraph.Add(ConfirmGraph[6]);
+                    patrolPoint.Add(ConfirmGraph[6].pos);
+                    patrolGraph.Add(ConfirmGraph[7]);
+                    patrolPoint.Add(ConfirmGraph[7].pos);
+                    patrolGraph.Add(ConfirmGraph[17]);
+                    patrolPoint.Add(ConfirmGraph[17].pos);
+                    patrolGraph.Add(ConfirmGraph[18]);
+                    patrolPoint.Add(ConfirmGraph[18].pos);
+                    patrolGraph.Add(ConfirmGraph[31]);
+                    patrolPoint.Add(ConfirmGraph[31].pos);
+                    int[] looks = new int[6] { 2,0,0,0, 1, 2 };
+                    path = new PatrolPath(false, patrolPoint, patrolGraph, turnDist, looks);
+                }
+                else if (i == 2)
+                {
+                    patrolGraph.Add(ConfirmGraph[27]);
+                    patrolPoint.Add(ConfirmGraph[27].pos);
+                    patrolGraph.Add(ConfirmGraph[28]);
+                    patrolPoint.Add(ConfirmGraph[28].pos);
+                    patrolGraph.Add(ConfirmGraph[36]);
+                    patrolPoint.Add(ConfirmGraph[36].pos);
+                    patrolGraph.Add(ConfirmGraph[37]);
+                    patrolPoint.Add(ConfirmGraph[37].pos);
+                    int[] looks = new int[4] { 1, 0, 1, 0};
+                    path = new PatrolPath(false, patrolPoint, patrolGraph, turnDist, looks);
+                }
+                else if(i == 3)
+                {
+                    patrolGraph.Add(ConfirmGraph[34]);
+                    patrolPoint.Add(ConfirmGraph[34].pos);
+                    patrolGraph.Add(ConfirmGraph[25]);
+                    patrolPoint.Add(ConfirmGraph[25].pos);
+                    patrolGraph.Add(ConfirmGraph[24]);
+                    patrolPoint.Add(ConfirmGraph[24].pos);
+                    patrolGraph.Add(ConfirmGraph[11]);
+                    patrolPoint.Add(ConfirmGraph[11].pos);
+                    int[] looks = new int[4] {0, 1, 0, 2 };
+                    path = new PatrolPath(false, patrolPoint, patrolGraph, turnDist, looks);
+                }
+                else if (i == 4)
+                {
+                    patrolGraph.Add(ConfirmGraph[35]);
+                    patrolPoint.Add(ConfirmGraph[35].pos);
+                    patrolGraph.Add(ConfirmGraph[38]);
+                    patrolPoint.Add(ConfirmGraph[38].pos);
+                    patrolGraph.Add(ConfirmGraph[33]);
+                    patrolPoint.Add(ConfirmGraph[33].pos);
+                    patrolGraph.Add(ConfirmGraph[39]);
+                    patrolPoint.Add(ConfirmGraph[39].pos);
+                    patrolGraph.Add(ConfirmGraph[40]);
+                    patrolPoint.Add(ConfirmGraph[40].pos);
+                    int[] looks = new int[5] { 2, 2, 0, 0, 1 };
+                    path = new PatrolPath(false, patrolPoint, patrolGraph, turnDist, looks);
+                }
+                else if (i == 5)
+                {
+                    patrolGraph.Add(ConfirmGraph[20]);
+                    patrolPoint.Add(ConfirmGraph[20].pos);
+                    patrolGraph.Add(ConfirmGraph[9]);
+                    patrolPoint.Add(ConfirmGraph[9].pos);
+                    patrolGraph.Add(ConfirmGraph[8]);
+                    patrolPoint.Add(ConfirmGraph[8].pos);
+                    int[] looks = new int[3] { 1, 0, 2 };
+                    path = new PatrolPath(false, patrolPoint, patrolGraph, turnDist, looks);
+                }
+                Debug.Log("完成路線 ");
+                for (int j = 0; j < patrolGraph.Count; j++)
+                {
+                    Debug.Log("路線點 " + patrolGraph[j].pos + "  &  " + patrolPoint[j]);
+                    patrolGraph[j].detectNum = 1;
+                    patrolGraph[j].patrolPath = path;
+                    patrolGraph[j].pathID = j;
+                }
+                patrolPathes.Add(path);
+                firstPatrolPathes.Add(path);
+                patrolGraph = new List<PatrolGraphNode>();
+                patrolPoint = new List<Vector3>();
+            }
+        }
+
+        yield return null;
+        gameManager.hasCreatPath++;
     }
 
     IEnumerator CreatePath() {
@@ -2283,7 +2599,8 @@ public class PatrolManager : MonoBehaviour
 
             }
         }
-
+        sw.Stop();
+        Debug.Log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  " + sw.ElapsedMilliseconds + " ms");
         //通知gamemanager 有一個地圖已經連接好了
         gameManager.hasCreatPath++;
     }
@@ -2728,11 +3045,14 @@ public class PatrolManager : MonoBehaviour
                             }
 
                         }
-                        branchRoute.Reverse();
-                        branchRoutePos.Reverse();
-                        firstConnectNode = branchRoute[0];
-                        connectNode = firstConnectNode;
-                        connectID = connectNode.pathID;
+                        if (branchRoute.Count > 0) {
+                            branchRoute.Reverse();
+                            branchRoutePos.Reverse();
+                            firstConnectNode = branchRoute[0];
+                            connectNode = firstConnectNode;
+                            connectID = connectNode.pathID;
+                        }
+
                     }
                 }
                 //沒有點可以接到偵測點
@@ -2766,16 +3086,20 @@ public class PatrolManager : MonoBehaviour
                     Vector3 dir2 = branchRoutePos[c - 2] - branchRoutePos[c - 1];
 
                     float a = Vector3.Angle(dir1, dir2);
+
                     Vector3 center = 0.5f * (branchRoutePos[c - 2] + branchRoutePos[c]);
-                    Vector3 halfExtent = new Vector3((center - branchRoutePos[c]).magnitude, 1.0f, leastNarrow);
+                    Vector3 halfExtent = new Vector3(0.5f*(center - branchRoutePos[c]).magnitude, 1.0f, leastNarrow);
                     Collider[] hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (branchRoutePos[c - 2] - branchRoutePos[c])), 0), obstacleMask);
                     if (a > 110f && (hits == null || hits.Length == 0)) //!Physics.Linecast(branchRoutePos[c - 2], branchRoutePos[c], obstacleMask
                     {
-                        Debug.Log(branchRoutePos[c-2] + "  " + branchRoutePos[c]);
+                        Debug.Log(branchRoutePos[c - 2] + "  " + branchRoutePos[c]);
                         Debug.Log(" 偵測位置在該線段，會造成重複走  所以移除  " + branchRoutePos[c - 1] + "  route " + branchRoute[c - 1].pos);
                         branchRoutePos.RemoveAt(c - 1);
                         branchRoute.RemoveAt(c - 1);
                     }
+                    //else Debug.Log("rot angle  " + Vector3.Angle(Vector3.left, (branchRoutePos[c - 2] - branchRoutePos[c])) + "   hit " + hits[0].transform.name);
+                    // Debug.Log("分支角度   " + a);    
+                    //Debug.Log("分支   " + branchRoutePos[c - 2] + "   " + branchRoutePos[c - 1] + "  " + branchRoutePos[c]);
                 }
 
                 //將接到分支但還未到本來巡邏路線的點加入新分支
@@ -2968,7 +3292,8 @@ public class PatrolManager : MonoBehaviour
             {
                 Debug.Log("沒有新分支可以接");
                 isProcessingPath = false;
-                TryProcessNext();
+                RequestBackPatrol(null, enemy.transform.position, enemy);
+                //TryProcessNext();
             }
         }
         else {
@@ -3223,7 +3548,7 @@ public class PatrolManager : MonoBehaviour
                 Vector3 dir2 = branchRoutePos[2] - branchRoutePos[1];
 
                 Vector3 center = 0.5f * (branchRoutePos[0] + branchRoutePos[2]);
-                Vector3 halfExtent = new Vector3((center - branchRoutePos[0]).magnitude, 1.0f, leastNarrow);
+                Vector3 halfExtent = new Vector3(0.5f*(center - branchRoutePos[0]).magnitude, 1.0f, leastNarrow);
                 Collider[] hits = Physics.OverlapBox(center, halfExtent, Quaternion.LookRotation(Vector3.forward) * Quaternion.Euler(0, Vector3.Angle(Vector3.left, (branchRoutePos[2] - branchRoutePos[0])), 0), obstacleMask);
                 float a = Vector3.Angle(dir1, dir2);
                 if (a > 110f && (hits == null || hits.Length == 0))  //!Physics.Linecast(branchRoutePos[2], branchRoutePos[0], obstacleMask
