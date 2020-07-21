@@ -13183,7 +13183,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82a95cadbc11b7f4ba81168b20347b08, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dataNum: 7
+  dataNum: -1
   MainCamera: {fileID: 1451996409}
   enemyManager: {fileID: 994122380}
   player: {fileID: 930840398}
@@ -19365,7 +19365,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   InTest: 0
-  staticRoute: 1
+  staticRoute: 0
   staticRouteID: 0
   maxChoosenWeight: 0
   runConnectEnd: 0
@@ -26639,7 +26639,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 256
   InTest: 0
-  staticRoute: 1
+  staticRoute: 0
   staticRouteID: 0
   maxChoosenWeight: 0
   runConnectEnd: 0

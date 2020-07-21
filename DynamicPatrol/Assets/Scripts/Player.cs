@@ -72,8 +72,10 @@ public class Player : MonoBehaviour
 
         //if (!inThrow)
         //{
-        //    if (Input.GetMouseButtonDown(0)) {
-        //        if (throwNum > 0 && freeThrowthings.Count > 0) {
+        //    if (Input.GetMouseButtonDown(0))
+        //    {
+        //        if (throwNum > 0 && freeThrowthings.Count > 0)
+        //        {
         //            inThrow = true;
         //            Vector3 mPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
         //            throwDir = new Vector3(mPos.x, 0, mPos.z) - transform.position;
@@ -84,17 +86,20 @@ public class Player : MonoBehaviour
         //        }
         //    }
         //}
-        //else {
+        //else
+        //{
         //    Vector3 mPos = mainCamera.ScreenToWorldPoint(Input.mousePosition);
         //    Vector3 newDir = new Vector3(mPos.x, 0, mPos.z) - transform.position;
         //    if (newDir.sqrMagnitude > 0.25f) throwDir = newDir.normalized;
         //    throwArrow.rotation = Quaternion.LookRotation(throwDir);
 
-        //    if (Input.GetMouseButtonDown(1)) {
+        //    if (Input.GetMouseButtonDown(1))
+        //    {
         //        inThrow = false;
         //        throwArrowSprite.enabled = false;
         //    }
-        //    if (Input.GetMouseButtonUp(0)) {
+        //    if (Input.GetMouseButtonUp(0))
+        //    {
         //        inThrow = false;
         //        throwArrowSprite.enabled = false;
         //        throwNum--;
