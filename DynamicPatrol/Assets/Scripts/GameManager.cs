@@ -378,7 +378,6 @@ public class GameManager : MonoBehaviour
                 canvasInfo.enabled = true;
                 canvasInfoBG.enabled = true;
                 blackShowCBK = SkipToNextRound;
-                //blackEndCBK = BlackEndPlay;
                 canvasAnimator.Play("BlackFadeOut");
                 playInfomation.SetTime(mapPatrolManager[mapCount].dynamicPatrolSystem, mapCount, -roundTime);
                 roundTime = .0f;
@@ -409,7 +408,7 @@ public class GameManager : MonoBehaviour
 
         }
         else {
-            pause = true;
+            //pause = true;
             hasGoal = false;
             exitObject[mapCount].SetActive(true);
             blackShowCBK = PlayerDeadReset;
@@ -417,6 +416,8 @@ public class GameManager : MonoBehaviour
             canvasAnimator.Play("BlackFadeOut");
             playInfomation.CountDeadNum(mapPatrolManager[mapCount].dynamicPatrolSystem, mapCount);
 
+
+            //player.transform.position = startPos[mapCount];
         }
     }
 
