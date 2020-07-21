@@ -151,7 +151,7 @@ public class Enemy : MonoBehaviour
                     seePlayerTime -= Time.deltaTime;
                     if (seePlayerTime <= .0f) seePlayerTime = .0f;
                     loosePlayerTime += Time.deltaTime;
-                    if (loosePlayerTime > Random.Range(1.5f, 3.0f)) {
+                    if (loosePlayerTime >= 1.0f) {
                         loosePlayerTime = .0f;
                         suspectSearch = true;
                         ChangeState(EnemyState.Search);

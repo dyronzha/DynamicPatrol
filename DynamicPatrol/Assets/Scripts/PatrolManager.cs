@@ -1880,7 +1880,7 @@ public class PatrolManager : MonoBehaviour
         }
         else if (staticRouteID == 1)
         {
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 5; i++)
             {
                 PatrolPath path = null;
                 if (i == 0)
@@ -1911,13 +1911,23 @@ public class PatrolManager : MonoBehaviour
                 }
                 else if (i == 2)
                 {
-                    patrolGraph.Add(ConfirmGraph[21]);
-                    patrolPoint.Add(ConfirmGraph[21].pos);
                     patrolGraph.Add(ConfirmGraph[10]);
                     patrolPoint.Add(ConfirmGraph[10].pos);
                     patrolGraph.Add(ConfirmGraph[18]);
                     patrolPoint.Add(ConfirmGraph[18].pos);
-                    int[] looks = new int[3] { 1, 1, 1};
+                    int[] looks = new int[2] { 1, 1};
+                    path = new PatrolPath(false, patrolPoint, patrolGraph, turnDist, looks);
+                }
+                else if (i == 3)
+                {
+                    patrolGraph.Add(ConfirmGraph[19]);
+                    patrolPoint.Add(ConfirmGraph[19].pos);
+                    patrolGraph.Add(ConfirmGraph[20]);
+                    patrolPoint.Add(ConfirmGraph[20].pos);
+                    patrolGraph.Add(ConfirmGraph[21]);
+                    patrolPoint.Add(ConfirmGraph[21].pos);
+
+                    int[] looks = new int[3] { 0, 1, 2 };
                     path = new PatrolPath(false, patrolPoint, patrolGraph, turnDist, looks);
                 }
                 else

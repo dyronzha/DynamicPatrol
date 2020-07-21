@@ -13183,7 +13183,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 82a95cadbc11b7f4ba81168b20347b08, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dataNum: -1
+  dataNum: 7
   MainCamera: {fileID: 1451996409}
   enemyManager: {fileID: 994122380}
   player: {fileID: 930840398}
@@ -20859,7 +20859,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 5
   chaseSpeed: 7.5
-  moveRotateSpeed: 8
+  moveRotateSpeed: 6
   lookRotateSpeed: 90
   sightRadius: 11
   sightAngle: 80
@@ -27105,7 +27105,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 78.57, y: -116.9}
+  m_AnchoredPosition: {x: 78.57001, y: -116.8999}
   m_SizeDelta: {x: 157.12, y: 76.66}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1250435620
