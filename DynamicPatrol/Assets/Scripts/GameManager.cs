@@ -44,6 +44,13 @@ public class GameManager : MonoBehaviour
     float roundTime = .0f;
     int roundDeadNum = 0;
 
+
+    public Material enemyPatrolMat;
+    List<LineRenderer> patrolLine = new List<LineRenderer>();
+    Dictionary<Vector3, List<Vector3>> hasInPatrol = new Dictionary<Vector3,List<Vector3>>();
+    bool drawOnce = false;
+    Dictionary<PatrolPath, List<LineRenderer>> patrolPathLineDic = new Dictionary<PatrolPath, List<LineRenderer>>();
+
     // Start is called before the first frame update
     private void Awake()
     {
@@ -62,6 +69,11 @@ public class GameManager : MonoBehaviour
             activeMapCount++;
         }
 
+        Transform pLines = transform.Find("PatrolLines");
+        for (int i = 0; i < pLines.childCount; i++) {
+            patrolLine.Add(pLines.GetChild(i).GetComponent<LineRenderer>());
+        }
+
         gameMaps = new Transform[activeMapCount];
         startPos = new Vector3[gameMaps.Length];
         exitPos = new Vector3[gameMaps.Length];
@@ -74,7 +86,7 @@ public class GameManager : MonoBehaviour
             for (int i = 0; i < dynamicMaps.childCount; i++)
             {
                 if (!dynamicMaps.GetChild(i).gameObject.activeSelf) continue;
-                Debug.Log(GameMap.GetChild(i).name);
+                Debug.Log(dynamicMaps.GetChild(i).name);
                 gameMaps[allMapNum] = dynamicMaps.GetChild(i);
                 startPos[allMapNum] = gameMaps[allMapNum].Find("StartPos").position;
                 exitPos[allMapNum] = gameMaps[allMapNum].Find("Exit").position;
@@ -85,7 +97,7 @@ public class GameManager : MonoBehaviour
                 allMapNum++;
 
                 if (!normalMaps.GetChild(i).gameObject.activeSelf) continue;
-                Debug.Log(GameMap.GetChild(i).name);
+                Debug.Log(normalMaps.GetChild(i).name);
                 gameMaps[allMapNum] = normalMaps.GetChild(i);
                 startPos[allMapNum] = gameMaps[allMapNum].Find("StartPos").position;
                 exitPos[allMapNum] = gameMaps[allMapNum].Find("Exit").position;
@@ -126,7 +138,7 @@ public class GameManager : MonoBehaviour
             for (int i = 0; i < dynamicMaps.childCount; i++)
             {
                 if (!normalMaps.GetChild(i).gameObject.activeSelf) continue;
-                Debug.Log(GameMap.GetChild(i).name);
+                Debug.Log(normalMaps.GetChild(i).name);
                 gameMaps[allMapNum] = normalMaps.GetChild(i);
                 startPos[allMapNum] = gameMaps[allMapNum].Find("StartPos").position;
                 exitPos[allMapNum] = gameMaps[allMapNum].Find("Exit").position;
@@ -136,7 +148,7 @@ public class GameManager : MonoBehaviour
                 mapPatrolManager[allMapNum].startPos = startPos[allMapNum];
                 allMapNum++;
                 if (!dynamicMaps.GetChild(i).gameObject.activeSelf) continue;
-                Debug.Log(GameMap.GetChild(i).name);
+                Debug.Log(dynamicMaps.GetChild(i).name);
                 gameMaps[allMapNum] = dynamicMaps.GetChild(i);
                 startPos[allMapNum] = gameMaps[allMapNum].Find("StartPos").position;
                 exitPos[allMapNum] = gameMaps[allMapNum].Find("Exit").position;
@@ -205,6 +217,7 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        
         if (InTest)
         {
             if (Input.GetKeyDown(KeyCode.O))
@@ -225,6 +238,18 @@ public class GameManager : MonoBehaviour
                 {
                     init = true;
                     mapPatrolManager[mapCount].SpawnEnemy();
+                    if (!drawOnce)
+                    {
+                        drawOnce = true;
+                        for (int i = 0; i < mapPatrolManager.Length; i++)
+                        {
+                            for (int j = 0; j < mapPatrolManager[i].patrolPathes.Count; j++)
+                            {
+                                DrawEnemyPatrol(mapPatrolManager[i].patrolPathes[j]);
+                            }
+                            DrawPatrolMap(mapPatrolManager[i].ConfirmGraph);
+                        }
+                    }
                 }
             }
             if(Input.GetKeyDown(KeyCode.Space)) player.SetBorder(mapPatrolManager[mapCount].PathGrid.MinBorderPoint, mapPatrolManager[mapCount].PathGrid.MaxBorderPoint);
@@ -238,12 +263,25 @@ public class GameManager : MonoBehaviour
         if (!init)
         {
             if (hasCreatPath >= allMapNum) {
+                
                 init = true;
                 mapPatrolManager[mapCount].SpawnEnemy();
                 player.SetBorder(mapPatrolManager[mapCount].PathGrid.MinBorderPoint, mapPatrolManager[mapCount].PathGrid.MaxBorderPoint);
                 canvasAnimator.Play("BlackFadeIn");
                 canvasInfo.enabled = true;
                 canvasInfoBG.enabled = true;
+                if (!drawOnce)
+                {
+                    drawOnce = true;
+                    for (int i = 0; i < mapPatrolManager.Length; i++)
+                    {
+                        for (int j = 0; j < mapPatrolManager[i].patrolPathes.Count; j++)
+                        {
+                            DrawEnemyPatrol(mapPatrolManager[i].patrolPathes[j]);
+                        }
+                        DrawPatrolMap(mapPatrolManager[i].ConfirmGraph);
+                    }
+                }
             }
         }
         else {
@@ -449,4 +487,52 @@ public class GameManager : MonoBehaviour
         hasStart = false;
     }
 
+
+    public void DrawPatrolMap(List<PatrolManager.PatrolGraphNode> graph) {
+
+        for (int i = 0; i < graph.Count; i++)
+        {
+            PatrolManager.PatrolGraphNode node = graph[i];
+
+            Vector3 from = new Vector3(node.pos.x, 1.0f, node.pos.z);
+
+            foreach (KeyValuePair<PatrolManager.PatrolGraphNode, float> item in node.besideNodes)
+            {
+                if( (hasInPatrol.ContainsKey(node.pos) && hasInPatrol[node.pos].Contains(item.Key.pos)) ||  (hasInPatrol.ContainsKey(item.Key.pos) && hasInPatrol[item.Key.pos].Contains(node.pos)) )continue;
+                Vector3 to = new Vector3(item.Key.pos.x, 1.5f, item.Key.pos.z);
+                patrolLine[0].enabled = true;
+                patrolLine[0].SetPosition(0, from);
+                patrolLine[0].SetPosition(1, to);
+                patrolLine.RemoveAt(0);
+
+                if (!hasInPatrol.ContainsKey(node.pos)) { hasInPatrol.Add(node.pos, new List<Vector3>()); }
+                hasInPatrol[node.pos].Add(item.Key.pos);
+
+                if (!hasInPatrol.ContainsKey(item.Key.pos)) { hasInPatrol.Add(item.Key.pos, new List<Vector3>()); }
+                hasInPatrol[item.Key.pos].Add(node.pos);
+            }
+            //height += 1.0f;
+        }
+    }
+    public void DrawEnemyPatrol(PatrolPath path) {
+        List<LineRenderer> patrolPathLines = new List<LineRenderer>();
+        for (int i = 0; i < path.pathPatrolGraphNode.Count - 1; i++) {
+            PatrolManager.PatrolGraphNode node = path.pathPatrolGraphNode[i];
+            Vector3 from = new Vector3(path.pathPatrolGraphNode[i].pos.x, 3.0f, path.pathPatrolGraphNode[i].pos.z);
+            Vector3 to = new Vector3(path.pathPatrolGraphNode[i+1].pos.x, 3.0f, path.pathPatrolGraphNode[i+1].pos.z);
+            patrolLine[0].material = enemyPatrolMat;
+            patrolLine[0].enabled = true;
+            patrolLine[0].SetPosition(0, from);
+            patrolLine[0].SetPosition(1, to);
+            patrolPathLines.Add(patrolLine[0]);
+            patrolLine.RemoveAt(0);
+
+            if (!hasInPatrol.ContainsKey(path.pathPatrolGraphNode[i].pos)) {hasInPatrol.Add(path.pathPatrolGraphNode[i].pos, new List<Vector3>());}
+            hasInPatrol[path.pathPatrolGraphNode[i].pos].Add(path.pathPatrolGraphNode[i + 1].pos);
+
+            if (!hasInPatrol.ContainsKey(path.pathPatrolGraphNode[i+1].pos)) { hasInPatrol.Add(path.pathPatrolGraphNode[i+1].pos, new List<Vector3>()); }
+            hasInPatrol[path.pathPatrolGraphNode[i + 1].pos].Add(path.pathPatrolGraphNode[i].pos);
+        }
+        patrolPathLineDic.Add(path, patrolPathLines);
+    }
 }

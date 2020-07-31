@@ -48,8 +48,8 @@ namespace PathFinder
         public enum DrawType { 
             Weight, BeforeSpread, AfterSpread, GraphConnect
         }
-        public DrawType drawType; 
-        
+        public DrawType drawType;
+
         void Awake()
         {
             patrolManager = transform.GetComponent<PatrolManager>();
