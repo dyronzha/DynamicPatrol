@@ -681,7 +681,6 @@ public class PatrolManager : MonoBehaviour
                 xNum += (node.neighbor[j].pos.x - node.pos.x);
                 yNum += (node.neighbor[j].pos.y - node.pos.y);
                 count++;
-                Debug.Log("鄰居有  " + node.neighbor[j].pos);
             }
             if (count == 0)
             {
@@ -704,11 +703,12 @@ public class PatrolManager : MonoBehaviour
                 //Debug.Log("個數多 末端 ");
             }
 
-            //如果是末端點，開始往回推
-            int breakNum = 0;
+            List<SpreadNode> waitNodes = new List<SpreadNode>();
+           //如果是末端點，開始往回推
+           int breakNum = 0;
             while (endNode != null)
             {
-                //Debug.Log(" 開始計算 " + endNode.pos + " 的分支");
+                Debug.Log(" 開始計算 " + endNode.pos + " 的分支");
                 breakNum++;
                 if (breakNum > 9999) break;
 
@@ -723,7 +723,7 @@ public class PatrolManager : MonoBehaviour
                     else
                     {
                         //只有一個鄰居
-                        //Debug.Log(endNode.pos + " 有一個鄰居 " + endNode.neighbor[0].pos);
+                        Debug.Log(endNode.pos + " 有一個鄰居 " + endNode.neighbor[0].pos);
                         endNode.neighbor[0].neighbor.Remove(endNode);
                         couculatedNodes.Add(endNode.pos);
                         if (!probablyEndNodes.Contains(endNode.neighbor[0]))
@@ -743,30 +743,58 @@ public class PatrolManager : MonoBehaviour
                 else
                 {
                     //如果有多個鄰居，需要計算方向
-                    //Debug.Log(endNode.pos + " 有多個鄰居");
+                    Debug.Log(endNode.pos + " 有多個鄰居");
                     count = 0;
                     xNum = 0;
                     yNum = 0;
-                    int neighborNum = 0; //用於確認自己是不是鄰居唯一的接壤點，刪除可能會造成斷路
-                    bool twoBranchClose = false; //用於如果兩個分支緊鄰會造成無法刪除的情況
+                    int couculateNum = 0; //用於確認自己是不是鄰居唯一的接壤點，刪除可能會造成斷路
                     for (int j = endNode.neighbor.Count - 1; j >= 0; j--)
                     {
-                        if (probablyEndNodes.Contains(endNode.neighbor[j])) {
-                            twoBranchClose = true;
-                            probablyEndNodes.Remove(endNode.neighbor[j]);
-                            couculatedNodes.Add(endNode.pos);
-                            endNode = endNode.neighbor[j];
-                            break;
-                        }
                         if (!couculatedNodes.Contains(endNode.neighbor[j].pos))
                         {
                             xNum += (endNode.neighbor[j].pos.x - endNode.pos.x);
                             yNum += (endNode.neighbor[j].pos.y - endNode.pos.y);
                             count++;
-                            neighborNum += (endNode.neighbor[j].neighbor.Count - 1);
-                            //Debug.Log(endNode.pos + " 有多個鄰居  " + endNode.neighbor[j].pos);
+                            Debug.Log(endNode.pos + " 有多個鄰居  " + endNode.neighbor[j].pos);
+                            for (int k = j + 1; k < endNode.neighbor.Count; k++)
+                            {
+                                if ((endNode.neighbor[j].pos - endNode.neighbor[k].pos).sqrMagnitude <= 2)
+                                {
+                                    couculateNum++;
+                                }
+                            }
                         }
                     }
+                    if ((Mathf.Abs(xNum) >= 2 || Mathf.Abs(yNum) >= 2) && couculateNum >= endNode.neighbor.Count - 1)
+                    {
+                        Debug.Log("是末端  捨棄");
+                        couculatedNodes.Add(endNode.pos);
+                        for (int j = 0; j < endNode.neighbor.Count; j++)
+                        {
+                            
+                            endNode.neighbor[j].neighbor.Remove(endNode);
+                            if (!couculatedNodes.Contains(endNode.neighbor[j].pos) && !waitNodes.Contains(endNode.neighbor[j]))
+                            {
+                                Debug.Log("加~~~~進等待  " + endNode.neighbor[j].pos);
+                                waitNodes.Add(endNode.neighbor[j]);
+                            }
+                        }
+                    }
+                    else if (!probablyEndNodes.Contains(endNode)) probablyEndNodes.Add(endNode);
+                    if (waitNodes.Count > 0)
+                    {
+                        endNode = waitNodes[0];
+                        waitNodes.RemoveAt(0);
+                    }
+                    else
+                    {
+                        endNode = null;
+                    }
+                    //if (!probablyEndNodes.Contains(endNode)) probablyEndNodes.Add(endNode);
+                    //endNode = null;
+                    //一有多個鄰居就結束該分支
+
+
                     //確認自己是鄰居唯一的接壤點，刪除可能會造成斷路，直接結束分支
                     //if (neighborNum == endNode.neighbor.Count || (xNum < 2 && yNum < 2) || (xNum >= 2 && yNum > 0) || (yNum >= 2 && xNum > 0)) {
                     //    if (!probablyEndNodes.Contains(endNode)) probablyEndNodes.Add(endNode);
@@ -796,15 +824,7 @@ public class PatrolManager : MonoBehaviour
                     //    if (!probablyEndNodes.Contains(endNode)) probablyEndNodes.Add(endNode);
                     //}
 
-                    if (!twoBranchClose)
-                    {
-                        if (!probablyEndNodes.Contains(endNode)) probablyEndNodes.Add(endNode);
-                        endNode = null;
-                        
-                    }
-                    else twoBranchClose = false;
 
-                    //一有多個鄰居就結束該分支
                 }
             }
         }
@@ -812,7 +832,7 @@ public class PatrolManager : MonoBehaviour
         //將計算過的點捨棄
         for (int i = couculatedNodes.Count - 1; i >= 0; i--)
         {
-            //Debug.Log("計算過  " + couculatedNodes[i] + " 捨棄");
+            Debug.Log("計算過  " + couculatedNodes[i] + " 捨棄");
             for (int j = 0; j < choosenNodeDic[couculatedNodes[i]].neighbor.Count; j++)
             {
                 choosenNodeDic[couculatedNodes[i]].neighbor[j].neighbor.Remove(choosenNodeDic[couculatedNodes[i]]);
