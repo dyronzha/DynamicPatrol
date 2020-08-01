@@ -116,7 +116,7 @@ namespace PathFinder
         }
 
         public void AddArea(string name, int dir, PatrolManager patrolManager) {
-            if (gridX == 36 && gridY == 70)Debug.Log(lastAreaName + "  addddddddddd  " + name);
+            //if (gridX == 36 && gridY == 70)Debug.Log(lastAreaName + "  addddddddddd  " + name);
             if (lastAreaName.Length == 0)
             {
                 //未有區域，新增
@@ -152,20 +152,28 @@ namespace PathFinder
 
                             //同方向斜邊需互撞要新增tiltSpread
                             if (colDir == 47 ) {
-                                node.dir = new Vector2Int(0, 1);
-                                patrolManager.tiltSpread.Add(node);
+                                PatrolManager.SpreadNode tiltNode = new PatrolManager.SpreadNode();
+                                tiltNode.dir = new Vector2Int(0, 1);
+                                tiltNode.pos = node.pos + tiltNode.dir;
+                                patrolManager.tiltSpread.Add(tiltNode);
                             }
                             else if (colDir == 53) {
-                                node.dir = new Vector2Int(0, -1);
-                                patrolManager.tiltSpread.Add(node);
+                                PatrolManager.SpreadNode tiltNode = new PatrolManager.SpreadNode();
+                                tiltNode.dir = new Vector2Int(0, -1);
+                                tiltNode.pos = node.pos + tiltNode.dir;
+                                patrolManager.tiltSpread.Add(tiltNode);
                             }
                             else if (colDir == 49) {
-                                node.dir = new Vector2Int(-1, 0);
-                                patrolManager.tiltSpread.Add(node);
+                                PatrolManager.SpreadNode tiltNode = new PatrolManager.SpreadNode();
+                                tiltNode.dir = new Vector2Int(-1, 0);
+                                tiltNode.pos = node.pos + tiltNode.dir;
+                                patrolManager.tiltSpread.Add(tiltNode);
                             }
                             else if (colDir == 51) {
-                                node.dir = new Vector2Int(1, 0);
-                                patrolManager.tiltSpread.Add(node);
+                                PatrolManager.SpreadNode tiltNode = new PatrolManager.SpreadNode();
+                                tiltNode.dir = new Vector2Int(1, 0);
+                                tiltNode.pos = node.pos + tiltNode.dir;
+                                patrolManager.tiltSpread.Add(tiltNode);
                             }
                         }
 

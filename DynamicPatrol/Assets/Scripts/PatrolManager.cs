@@ -748,8 +748,16 @@ public class PatrolManager : MonoBehaviour
                     xNum = 0;
                     yNum = 0;
                     int neighborNum = 0; //用於確認自己是不是鄰居唯一的接壤點，刪除可能會造成斷路
+                    bool twoBranchClose = false; //用於如果兩個分支緊鄰會造成無法刪除的情況
                     for (int j = endNode.neighbor.Count - 1; j >= 0; j--)
                     {
+                        if (probablyEndNodes.Contains(endNode.neighbor[j])) {
+                            twoBranchClose = true;
+                            probablyEndNodes.Remove(endNode.neighbor[j]);
+                            couculatedNodes.Add(endNode.pos);
+                            endNode = endNode.neighbor[j];
+                            break;
+                        }
                         if (!couculatedNodes.Contains(endNode.neighbor[j].pos))
                         {
                             xNum += (endNode.neighbor[j].pos.x - endNode.pos.x);
@@ -787,8 +795,15 @@ public class PatrolManager : MonoBehaviour
                     //    //如果有多個鄰居，且方向計算後不為末端，將自己加入可能清單
                     //    if (!probablyEndNodes.Contains(endNode)) probablyEndNodes.Add(endNode);
                     //}
-                    if (!probablyEndNodes.Contains(endNode)) probablyEndNodes.Add(endNode);
-                    endNode = null;
+
+                    if (!twoBranchClose)
+                    {
+                        if (!probablyEndNodes.Contains(endNode)) probablyEndNodes.Add(endNode);
+                        endNode = null;
+                        
+                    }
+                    else twoBranchClose = false;
+
                     //一有多個鄰居就結束該分支
                 }
             }
@@ -1087,12 +1102,13 @@ public class PatrolManager : MonoBehaviour
             if (choosenNode[i].neighbor.Count >= 2)
             {
                 //bool[] couculate = new bool[choosenNode[i].neighbor.Count];
-                int couculateNum = 0;
-                //計算每個鄰居之間有沒有連接，連接數++
+                int couculateNum = 0; //計算每個鄰居之間有沒有連接，連接數++
+                bool cross = (choosenNode[i].neighbor.Count < 3)?false:true; //正十字路口類型的，不用判斷自己是不是多餘
                 for (int j = 0; j < choosenNode[i].neighbor.Count; j++)
                 {
 
                     //if (couculate[j]) continue;
+                    if ((choosenNode[i].neighbor[j].pos - choosenNode[i].pos).sqrMagnitude >1) cross = false;
                     for (int k = j+1; k < choosenNode[i].neighbor.Count; k++)
                     {
                         //if (j == k) continue;
@@ -1105,7 +1121,7 @@ public class PatrolManager : MonoBehaviour
                     }
                 }
                 //如果連接數大於鄰居數量-1，就代表鄰居可以不經過自己走到連到其他鄰居，可以把自己刪掉
-                if (couculateNum >= choosenNode[i].neighbor.Count - 1)
+                if (couculateNum >= choosenNode[i].neighbor.Count - 1 && !cross)
                 {
                     for (int j = 0; j < choosenNode[i].neighbor.Count; j++)
                     {
