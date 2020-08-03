@@ -111,7 +111,36 @@ namespace PathFinder
                     if (hits != null && hits.Length > 0)
                     {
                         walkable = false;
-                        areaNmae = hits[0].transform.name;//(hits[0].transform.parent == null)?hits[0].transform.name: hits[0].transform.parent.name;
+                        if (hits.Length > 1 && x > 0 && y > 0 && y < gridSizeY-1) {
+                            bool sameArea = false;
+                            for (int i = 0; i < hits.Length; i++) {
+                                if (hits[i].transform.name.CompareTo(grid[x - 1, y].ColliderName) == 0) {
+                                    areaNmae = grid[x - 1, y].ColliderName;
+                                    sameArea = true;
+                                    break;
+                                }
+                                else if (hits[i].transform.name.CompareTo(grid[x - 1, y-1].ColliderName) == 0)
+                                {
+                                    areaNmae = grid[x - 1, y - 1].ColliderName;
+                                    sameArea = true;
+                                    break;
+                                }
+                                else if (hits[i].transform.name.CompareTo(grid[x - 1, y + 1].ColliderName) == 0)
+                                {
+                                    areaNmae = grid[x - 1, y + 1].ColliderName;
+                                    sameArea = true;
+                                    break;
+                                }
+                                else if (hits[i].transform.name.CompareTo(grid[x, y - 1].ColliderName) == 0)
+                                {
+                                    areaNmae = grid[x, y - 1].ColliderName;
+                                    sameArea = true;
+                                    break;
+                                }
+                            }
+                            if (!sameArea) areaNmae = hits[0].transform.name;
+                        }
+                        else areaNmae = hits[0].transform.name;//(hits[0].transform.parent == null)?hits[0].transform.name: hits[0].transform.parent.name;
                         if (hits.Length == 0 && hits[0].tag == "disappearBarrier")
                         {
                             disappearBarrier.Add(new Vector2(x, y));

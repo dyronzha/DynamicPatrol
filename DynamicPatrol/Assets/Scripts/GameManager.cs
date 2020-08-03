@@ -81,7 +81,7 @@ public class GameManager : MonoBehaviour
         exitObject = new GameObject[gameMaps.Length];
 
         bool r = (Random.Range(0, 10) >= 5) ? true : false;// false; //= (Random.Range(0, 10) >= 5) ? true : false;
-        if (false)
+        if (true)
         {
             for (int i = 0; i < dynamicMaps.childCount; i++)
             {

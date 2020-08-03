@@ -210,7 +210,6 @@ public class Enemy : MonoBehaviour
         senseRadius = manager.senseRadius;
         sightAngle = manager.sightAngle;
         reflectTime = manager.reflectTime;
-        Debug.Log(enemyManager);
     }
     public void SetPatrolPath(PatrolPath path, PatrolManager _patrolManager) {
         patrolManager = _patrolManager;
