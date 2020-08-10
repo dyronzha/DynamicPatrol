@@ -81,6 +81,8 @@ public class PatrolManager : MonoBehaviour
     public List<SpreadNode> choosenNode = new List<SpreadNode>();
     public List<PatrolGraphNode> ConfirmGraph = new List<PatrolGraphNode>();
 
+    List<SpreadNode> firstBranchNode = new List<SpreadNode>();
+
     public Dictionary<Vector2Int, SpreadNode> choosenNodeDic = new Dictionary<Vector2Int, SpreadNode>();
     public Dictionary<Vector2Int, PatrolGraphNode> confirmGraphNodeDic = new Dictionary<Vector2Int, PatrolGraphNode>();
 
@@ -238,25 +240,29 @@ public class PatrolManager : MonoBehaviour
                     CouculateGrid();
                     if (count > 10000) break;
                 }
+                DeleteExtraNode();
             }
             if (Input.GetKeyDown(KeyCode.X))
             {
-                DeleteExtraNode();
+                DeleteBranch();
             }
             if (Input.GetKeyDown(KeyCode.C))
             {
-                DeleteBranch();
+                DeleteNarrow();
             }
-            if (Input.GetKeyDown(KeyCode.V))
+            if (Input.GetKeyDown(KeyCode.V)) {
+                DeleteBranchSec();
+            }
+            if (Input.GetKeyDown(KeyCode.B))
             {
                 CouculateGraphCross();
                 CouculateGraphTurn();
             }
-            if (Input.GetKeyDown(KeyCode.B))
+            if (Input.GetKeyDown(KeyCode.N))
             {
                 StartCoroutine(ConactGraph());
             }
-            if (Input.GetKeyDown(KeyCode.N))
+            if (Input.GetKeyDown(KeyCode.M))
             {
                 skipRun = true;
             }
@@ -761,6 +767,8 @@ public class PatrolManager : MonoBehaviour
                         xNum = 0;
                         yNum = 0;
                         int couculateNum = 0; //用於確認自己是不是鄰居唯一的接壤點，刪除可能會造成斷路
+                        int endCouculateNum = 0;
+                        int endCount = 0;
                         //for (int j = endNode.neighbor.Count - 1; j >= 0; j--)
                         //{
                         //    if (!couculatedNodes.Contains(endNode.neighbor[j].pos))
@@ -810,10 +818,10 @@ public class PatrolManager : MonoBehaviour
                             Debug.Log("計算end鄰居  " + endNode.neighbor[j].pos);
                             for (int k = 0; k < endNode.neighbor[j].neighbor.Count; k++)
                             {
-                                if (endNode.neighbor[j].neighbor[k].Equals(endNode)) continue;
+                                if (endNode.neighbor[j].neighbor[k].Equals(endNode) || couculatedNodes.Contains(endNode.neighbor[j].neighbor[k].pos)) continue;
                                 count++;
                                 for (int l = k + 1; l < endNode.neighbor[j].neighbor.Count; l++) {
-                                    if (endNode.neighbor[j].neighbor[l].Equals(endNode)) continue;
+                                    if (endNode.neighbor[j].neighbor[l].Equals(endNode) || couculatedNodes.Contains(endNode.neighbor[j].neighbor[l].pos)) continue;
                                     if ((endNode.neighbor[j].neighbor[k].pos - endNode.neighbor[j].neighbor[l].pos).sqrMagnitude <= 2)
                                     {
                                         couculateNum++;
@@ -822,16 +830,32 @@ public class PatrolManager : MonoBehaviour
 
                             }
                             Debug.Log(couculateNum + "個相鄰" +"     " + count + "個鄰居" );
-                            if (count > 1 && couculateNum >= count-1)
+                            if (count > 1 && couculateNum >= count - 1)
                             {
                                 hasUseless = true;
-                                if(!couculatedNodes.Contains(endNode.neighbor[j].pos))couculatedNodes.Add(endNode.neighbor[j].pos);
+                                if (!couculatedNodes.Contains(endNode.neighbor[j].pos)) couculatedNodes.Add(endNode.neighbor[j].pos);
                             }
+                            else firstBranchNode.Add(endNode.neighbor[j]);
                             count = 0;
                             couculateNum = 0;
+
+                            if (!couculatedNodes.Contains(endNode.neighbor[j].pos)) endCount++;
+                            for (int k = j - 1; k >= 0; k--) {
+                                if (couculatedNodes.Contains(endNode.neighbor[k].pos)) continue;
+                                if ((endNode.neighbor[j].pos - endNode.neighbor[k].pos).sqrMagnitude <= 2)
+                                {
+                                    endCouculateNum++;
+                                }
+                            }
                         }
                         if (!hasUseless) probablyEndNodes.Add(endNode);
-                        else couculatedNodes.Add(endNode.pos);
+                        else {
+                            
+                            if (endCouculateNum >= endNode.neighbor.Count - 1 || endCount <= 1) {
+                                if (!couculatedNodes.Contains(endNode.pos)) couculatedNodes.Add(endNode.pos);
+                            }
+                            else probablyEndNodes.Add(endNode);
+                        }
                         endNode = null;
                        // 一有多個鄰居就結束該分支
 
@@ -897,7 +921,7 @@ public class PatrolManager : MonoBehaviour
                         }
                     }
                 }
-                if (couculateNum >= count - 1)
+                if (couculateNum >= count - 1 || count <= 1)
                 {
                     node.choosen = false;
                     if (probablyEndNodes.Contains(node)) probablyEndNodes.Remove(node);
@@ -906,6 +930,7 @@ public class PatrolManager : MonoBehaviour
                     for (int x = 0; x < node.neighbor.Count; x++)
                     {
                         node.neighbor[x].neighbor.Remove(node);
+                        if (node.neighbor[x].neighbor.Count == 1) firstBranchNode.Add(node.neighbor[x]);
                     }
                 }
             }
@@ -923,7 +948,8 @@ public class PatrolManager : MonoBehaviour
         for (int i = probablyEndNodes.Count - 1; i >= 0; i--)
         {
             if (couculatedNodes.Contains(probablyEndNodes[i].pos)) continue;
-            if (probablyEndNodes[i].neighbor.Count > 1) {
+            if (probablyEndNodes[i].neighbor.Count > 1)
+            {
                 int xNum = 0;
                 int yNum = 0;
                 int couculateNum = 0;
@@ -931,7 +957,7 @@ public class PatrolManager : MonoBehaviour
                 {
                     xNum += (probablyEndNodes[i].neighbor[j].pos.x - probablyEndNodes[i].pos.x);
                     yNum += (probablyEndNodes[i].neighbor[j].pos.y - probablyEndNodes[i].pos.y);
-                    for (int k = j+1; k < probablyEndNodes[i].neighbor.Count; k++)
+                    for (int k = j + 1; k < probablyEndNodes[i].neighbor.Count; k++)
                     {
                         if ((probablyEndNodes[i].neighbor[j].pos - probablyEndNodes[i].neighbor[k].pos).sqrMagnitude <= 2)
                         {
@@ -944,6 +970,10 @@ public class PatrolManager : MonoBehaviour
                     couculatedNodes.Add(probablyEndNodes[i].pos);
                     continue;
                 }
+            }
+            else { 
+                if(!couculatedNodes.Contains(probablyEndNodes[i].pos)) couculatedNodes.Add(probablyEndNodes[i].pos);
+                continue;
             }
             //Debug.Log("新支線!!!!!!!!!!!!!!!!!!!!!!!!!");
 
@@ -1033,6 +1063,7 @@ public class PatrolManager : MonoBehaviour
                 else
                 {
                     //如果周圍沒有障礙，停止執行刪除分支
+                    firstBranchNode.Add(endNode);
                     endNode = null;
                 }
             }
@@ -1062,7 +1093,197 @@ public class PatrolManager : MonoBehaviour
         }
     }
 
+    //刪除自角落延伸的點
+    void DeleteBranchSec()
+    {
+        Debug.Log("計算末端點  " + choosenNode.Count);
+        List<Vector2Int> couculatedNodes = new List<Vector2Int>();
+        List<SpreadNode> probablyEndNodes = new List<SpreadNode>();
 
+        //遍歷被選點
+        for (int i = choosenNode.Count - 1; i >= 0; i--)
+        {
+            SpreadNode node = choosenNode[i];
+            SpreadNode endNode = null;
+            int count = 0;
+            int xNum = 0;
+            int yNum = 0;
+            //Debug.Log("計算  " + choosenNode[i].pos + "  " + node.neighbor.Count);
+
+            //已經被算過是有碰撞的末端點，捨棄
+            if (couculatedNodes.Contains(node.pos) || firstBranchNode.Contains(node))
+            {
+                //Debug.Log("計算過  " + node.pos + " 捨棄");
+                continue;
+            }
+
+            //遍歷鄰居計算方向
+            for (int j = 0; j < node.neighbor.Count; j++)
+            {
+                xNum += (node.neighbor[j].pos.x - node.pos.x);
+                yNum += (node.neighbor[j].pos.y - node.pos.y);
+                count++;
+            }
+            if (count == 0)
+            {
+                //沒有鄰居，列入以計算點，之後刪除
+                couculatedNodes.Add(node.pos);
+            }
+            else if (count == 1 && !probablyEndNodes.Contains(node))
+            {
+                //只有一鄰居，為末端點
+                endNode = node;
+
+                //Debug.Log("個數1 末端 ");
+            }
+            //有多個鄰居的末端，方向不會抵銷
+            else if (count == 2 && (Mathf.Abs(xNum) >= 2 || Mathf.Abs(yNum) >= 2) && !probablyEndNodes.Contains(node))
+            {
+                //兩個鄰居，但位於同方向，為末端點
+                endNode = node;
+
+                //Debug.Log("個數多 末端 ");
+            }
+
+            //如果是末端點，開始往回推
+            int breakNum = 0;
+            while (endNode != null)
+            {
+                Debug.Log(" 開始計算 " + endNode.pos + " 的分支");
+                breakNum++;
+                if (breakNum > 9999) break;
+
+                if (probablyEndNodes.Contains(endNode))
+                {
+                    if (waitNodes.Count > 0)
+                    {
+                        endNode = waitNodes[0];
+                        waitNodes.RemoveAt(0);
+                    }
+                    else
+                    {
+                        endNode = null;
+                    }
+                }
+                else
+                {
+                    if (endNode.neighbor.Count <= 1)
+                    {
+                        if (endNode.neighbor.Count == 0)
+                        {
+                            //Debug.Log("分支盡頭");
+                            couculatedNodes.Add(endNode.pos);
+                            endNode = null;
+                        }
+                        else
+                        {
+                            //只有一個鄰居
+                            Debug.Log(endNode.pos + " 有一個鄰居 " + endNode.neighbor[0].pos);
+                            endNode.neighbor[0].neighbor.Remove(endNode);
+                            couculatedNodes.Add(endNode.pos);
+                            if (!probablyEndNodes.Contains(endNode.neighbor[0]))//&& !firstBranchNode.Contains(endNode.neighbor[0])
+                            {
+                                //如果那個鄰居沒有在交錯點列表，可以將它列為下一個判斷
+                                //Debug.Log("鄰居 " + endNode.neighbor[0].pos + "  鄰居為下一個計算點");
+                                endNode = endNode.neighbor[0];
+                            }
+                            else
+                            {
+                                //如果那個鄰居在交錯點列表，結束這個分支計算
+                                //Debug.Log("鄰居 " + endNode.neighbor[0].pos + "  為分支末端");
+                                endNode = null;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //如果有多個鄰居，需要計算方向
+                        Debug.Log(endNode.pos + " 有多個鄰居");
+                        count = 0;
+                        int couculateNum = 0; //用於確認自己是不是鄰居唯一的接壤點，刪除可能會造成斷路
+                        bool hasUseless = false;
+                        for (int j = endNode.neighbor.Count - 1; j >= 0; j--)
+                        {
+                            Debug.Log("計算end鄰居  " + endNode.neighbor[j].pos);
+                            for (int k = 0; k < endNode.neighbor[j].neighbor.Count; k++)
+                            {
+                                if (endNode.neighbor[j].neighbor[k].Equals(endNode)) continue;
+                                count++;
+                                for (int l = k + 1; l < endNode.neighbor[j].neighbor.Count; l++)
+                                {
+                                    if (endNode.neighbor[j].neighbor[l].Equals(endNode)) continue;
+                                    if ((endNode.neighbor[j].neighbor[k].pos - endNode.neighbor[j].neighbor[l].pos).sqrMagnitude <= 2)
+                                    {
+                                        couculateNum++;
+                                    }
+                                }
+
+                            }
+                            Debug.Log(couculateNum + "個相鄰" + "     " + count + "個鄰居");
+                            if (count > 1 && couculateNum >= count - 1)
+                            {
+                                hasUseless = true;
+                                if (!couculatedNodes.Contains(endNode.neighbor[j].pos)) couculatedNodes.Add(endNode.neighbor[j].pos);
+                            }
+                            count = 0;
+                            couculateNum = 0;
+                        }
+                        if (!hasUseless) probablyEndNodes.Add(endNode);
+                        else couculatedNodes.Add(endNode.pos);
+                        endNode = null;
+                        // 一有多個鄰居就結束該分支
+                    }
+                }
+
+
+            }
+        }
+
+        //將計算過的點捨棄
+        for (int i = couculatedNodes.Count - 1; i >= 0; i--)
+        {
+            Debug.Log("計算過  " + couculatedNodes[i] + " 捨棄");
+            for (int j = 0; j < choosenNodeDic[couculatedNodes[i]].neighbor.Count; j++)
+            {
+                SpreadNode node = choosenNodeDic[couculatedNodes[i]].neighbor[j];
+                node.neighbor.Remove(choosenNodeDic[couculatedNodes[i]]);
+                if (couculatedNodes.Contains(node.pos) || node.neighbor.Count < 2) continue;
+                int couculateNum = 0;
+                int count = 0;
+                for (int k = 0; k < node.neighbor.Count; k++)
+                {
+                    if (couculatedNodes.Contains(node.neighbor[k].pos)) continue;
+                    count++;
+                    for (int l = k + 1; l < node.neighbor.Count; l++)
+                    {
+                        if (couculatedNodes.Contains(node.neighbor[l].pos)) continue;
+                        if ((node.neighbor[k].pos - node.neighbor[l].pos).sqrMagnitude <= 2)
+                        {
+                            couculateNum++;
+                        }
+                    }
+                }
+                if (couculateNum >= count - 1)
+                {
+                    node.choosen = false;
+                    if (probablyEndNodes.Contains(node)) probablyEndNodes.Remove(node);
+                    choosenNode.Remove(node);
+                    choosenNodeDic.Remove(node.pos);
+                    for (int x = 0; x < node.neighbor.Count; x++)
+                    {
+                        node.neighbor[x].neighbor.Remove(node);
+                    }
+                }
+            }
+            choosenNodeDic[couculatedNodes[i]].choosen = false;
+            if (probablyEndNodes.Contains(choosenNodeDic[couculatedNodes[i]])) probablyEndNodes.Remove(choosenNodeDic[couculatedNodes[i]]);
+            choosenNode.Remove(choosenNodeDic[couculatedNodes[i]]);
+            choosenNodeDic.Remove(couculatedNodes[i]);
+
+        }
+        couculatedNodes.Clear();
+        waitNodes.Clear();
+    }
 
     void AddGraph() {
         if (ConfirmGraph.Count > 0) {
